@@ -1,0 +1,42 @@
+{% extends "chords/base.html" %}
+
+{% block title %}TCsMusic · Learn piano by understanding it{% endblock %}
+
+{% block content %}
+  <section class="home-hero-section">
+    <h1 class="home-hero-title">TCsMusic</h1>
+    <p class="home-hero-tagline">
+      A piano assistant that shows you why the notes fit together, so you stop memorising and start understanding.
+    </p>
+    <a class="home-hero-button" href="{% url 'chords:assistant' %}">Open the assistant</a>
+  </section>
+
+  <section class="home-programme-section">
+    <h2 class="home-programme-heading">The programme</h2>
+    <ol class="home-programme-list">
+      <li class="home-programme-item">
+        <h3 class="home-programme-title">Practise at the keyboard</h3>
+        <p class="home-programme-text">
+          Pick any chord, scale or progression, then see it light up and hear it played. Repeat until your hands know it.
+        </p>
+      </li>
+      <li class="home-programme-item">
+        <h3 class="home-programme-title">Learn what self-teaching skips</h3>
+        <p class="home-programme-text">
+          Chords as letters, six chords as words, progressions as sentences. Lessons that are hard to find on your own.
+        </p>
+      </li>
+      <li class="home-programme-item">
+        <h3 class="home-programme-title">Know why theory matters</h3>
+        <p class="home-programme-text">
+          Theory is the shortcut. Once you see the pattern, a song in any key is the same song.
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="home-closing-section">
+    <p class="home-closing-text">Ready to hear it?</p>
+    <a class="home-hero-button" href="{% url 'chords:assistant' %}">Start playing</a>
+  </section>
+{% endblock %}

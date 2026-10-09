@@ -1,0 +1,80 @@
+{% extends "chords/base.html" %}
+{% load static %}
+
+{% block title %}Chord assistant · TCsMusic{% endblock %}
+
+{% block content %}
+  <h1>Chord assistant</h1>
+
+  <div class="main-chord-controls">
+    <label>Root
+      <select id="main-chord-root">
+        {% for note in note_names %}
+          <option value="{{ note }}">{{ note }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Type
+      <select id="main-chord-quality">
+        {% for key, label in qualities %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <button type="button" id="main-chord-find">Find chord</button>
+    <button type="button" id="main-chord-play">Play again</button>
+  </div>
+
+  <p id="main-chord-result">Pick a chord and press Find.</p>
+
+    {% include "chords/_keyboard.html" %}
+
+    <section class="main-scale-panel">
+    <h2>Scales</h2>
+    <div class="main-scale-controls">
+      <label>Root
+        <select id="main-scale-root">
+          {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Scale
+        <select id="main-scale-type">
+          <option value="major">Major</option>
+          <option value="minor">Natural minor</option>
+        </select>
+      </label>
+      <button type="button" id="main-scale-play">Play scale</button>
+    </div>
+    <p id="main-chord-result" class="main-chord-result">…</p>
+    <p id="main-scale-result" class="main-scale-result"></p>
+    <p id="main-progression-result" class="main-progression-result"></p>
+  </section>
+
+  <section class="main-progression-panel">
+    <h2>Progressions</h2>
+    <div class="main-progression-controls">
+      <label>Key
+        <select id="main-progression-key">
+          {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Numbers
+        <input type="text" id="main-progression-input" value="1-5-6m-4">
+      </label>
+      <button type="button" id="main-progression-play">Play progression</button>
+    </div>
+    <p id="main-progression-result"></p>
+  </section>
+
+  <script id="main-api-url" type="application/json">"{% url 'chords:api-chord' %}"</script>
+  <script id="main-api-scale" type="application/json">"{% url 'chords:api-scale' %}"</script>
+  <script id="main-api-progression" type="application/json">"{% url 'chords:api-progression' %}"</script>
+{% endblock %}
+  
+
+{% block scripts %}
+    <script src="{% static 'chords/piano-core.js' %}"></script>
+    <script src="{% static 'chords/assistant.js' %}"></script>
+{% endblock %}

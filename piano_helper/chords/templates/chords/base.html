@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TCsMusic{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'chords/piano.css' %}">
+</head>
+<body>
+  <div class="site-backdrop" aria-hidden="true">
+    <div class="site-backdrop-glow"></div>
+    <div class="site-backdrop-playhead"></div>
+    <div class="site-backdrop-staff site-backdrop-staff-upper"></div>
+    <div class="site-backdrop-staff site-backdrop-staff-lower"></div>
+  </div>
+
+  <a class="site-skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header-bar">
+    <a class="site-header-brand" href="{% url 'chords:home' %}">TCs<span class="site-header-brand-music">Music</span></a>
+    <nav class="site-nav-list" aria-label="Main">
+      <a class="site-nav-link" href="{% url 'chords:home' %}"
+         {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Home</a>
+      <a class="site-nav-link" href="{% url 'chords:assistant' %}"
+         {% if request.resolver_match.url_name == 'assistant' %}aria-current="page"{% endif %}>Assistant</a>
+      <a class="site-nav-link" href="{% url 'chords:learn' %}"
+         {% if request.resolver_match.url_name == 'learn' %}aria-current="page"{% endif %}>Learn</a>      
+      <a class="site-nav-link" href="{% url 'chords:practice' %}"
+         {% if request.resolver_match.url_name == 'practice' %}aria-current="page"{% endif %}>Practice</a>    
+      <a class="site-nav-link" href="{% url 'chords:notation' %}"
+         {% if request.resolver_match.url_name == 'notation' %}aria-current="page"{% endif %}>Notation</a>    
+    </nav>
+  </header>
+
+  <main id="main-content" class="site-main-body">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer-bar">
+    <p class="site-footer-brand">TCs<span class="site-header-brand-music">Music</span>™</p>
+    <p class="site-footer-note">A piano assistant for self-taught players who want to know why.</p>
+    <p class="site-footer-legal">© {% now "Y" %} TCsMusic™</p>
+  </footer>
+
+  <script src="{% static 'chords/backdrop.js' %}"></script>
+  
+  {% block scripts %}{% endblock %}
+</body>
+    
+</html>
