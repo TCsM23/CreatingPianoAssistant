@@ -1,0 +1,157 @@
+{% extends "chords/base.html" %}
+{% load static %}
+
+{% block title %}About · TCsMusic{% endblock %}
+
+{% block content %}
+  <div class="about-top-grid">
+    <div class="about-top-intro">
+      <h1 class="about-page-title">About</h1>
+      <p class="about-page-intro">
+        What TCsMusic is, a quick reference for the keyboard and chords,
+        how to reach me, and how to support the project.
+      </p>
+    </div>
+    <nav class="about-jump" aria-label="On this page">
+      <a href="#about">About</a>
+      <a href="#reference">Reference</a>
+      <a href="#contact">Contact</a>
+      <a href="#support">Support me</a>
+    </nav>
+  </div>
+
+  <div class="about-grid">
+    <section class="about-card about-wide" id="about">
+      <h2 class="about-heading">About TCsMusic</h2>
+      <p class="about-text">
+        TCsMusic is a piano assistant for self-taught players who want to know
+        <em>why</em> a chord works, not just where to put their fingers.
+        It treats music like a language: notes are letters, chords are words,
+        and progressions are sentences.
+      </p>
+      <ul class="about-list">
+        <li><a href="{% url 'chords:assistant' %}">Assistant</a> builds any chord, scale or progression and lights it on the keyboard.</li>
+        <li><a href="{% url 'chords:learn' %}">Learn</a> teaches the method: letters, words, sentences.</li>
+        <li><a href="{% url 'chords:practice' %}">Practice</a> trains your ear and your timing.</li>
+        <li><a href="{% url 'chords:notation' %}">Notation</a> explains note values, dynamics, tempo and key signatures.</li>
+      </ul>
+    </section>
+
+    <section class="about-card about-wide" id="reference">
+      <h2 class="about-heading">Reference</h2>
+
+      <h3 class="about-sub">Keyboard and controls</h3>
+      <dl class="about-keys">
+        <div><dt><kbd>Space</kbd></dt><dd>Full sustain pedal while held</dd></div>
+        <div><dt><kbd>Shift</kbd></dt><dd>Half pedal while held</dd></div>
+        <div><dt>Click a key</dt><dd>Play it, click a lit key again to unlight it</dd></div>
+        <div><dt>Drag across keys</dt><dd>Glissando with the mouse or your finger</dd></div>
+        <div><dt>Sound</dt><dd>Switch between piano, e-piano, organ, synth, harpsichord and music box</dd></div>
+        <div><dt>Clear keys</dt><dd>Remove every highlight at once</dd></div>
+        <div><dt>Sun / moon icon</dt><dd>Switch between dark and light mode</dd></div>
+      </dl>
+      <p class="about-text">The keyboard spans C3 to C6, 37 keys.</p>
+
+      <h3 class="about-sub">Chord formulas</h3>
+      <p class="about-text">Steps are semitones above the root. Examples are built on C.</p>
+      <div class="about-table-wrap">
+        <table class="about-table">
+          <thead>
+            <tr><th scope="col">Chord</th><th scope="col">Symbol</th><th scope="col">Steps</th><th scope="col">Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for row in chord_rows %}
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                <td>{{ row.symbol }}</td>
+                <td>{{ row.steps }}</td>
+                <td>{{ row.notes }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="about-sub">Words worth knowing</h3>
+      <dl class="about-glossary">
+        <div><dt>Semitone</dt><dd>The distance between two neighbouring keys, black or white.</dd></div>
+        <div><dt>Root</dt><dd>The note a chord or scale is named after.</dd></div>
+        <div><dt>Triad</dt><dd>A three-note chord: root, third and fifth.</dd></div>
+        <div><dt>Progression</dt><dd>A sequence of chords, the “sentence” of a song.</dd></div>
+        <div><dt>Sustain</dt><dd>Letting notes keep ringing after you lift your fingers.</dd></div>
+      </dl>
+
+      <h3 class="about-sub">Credits</h3>
+      <p class="about-text">
+        Built with Django. Typefaces: Open Sauce, DM Sans and Noto Music.
+      </p>
+    </section>
+
+    <section class="about-card about-wide" id="contact">
+      <h2 class="about-heading">Contact</h2>
+      <div class="about-contact-grid">
+        {% if emailjs.service and emailjs.template and emailjs.key %}
+          <form class="about-form" id="about-form" novalidate
+                data-service="{{ emailjs.service }}" data-template="{{ emailjs.template }}" data-key="{{ emailjs.key }}">
+            <input type="hidden" name="title" value="New message from TCsMusic">
+            <div class="about-field">
+              <label for="about-name">Name</label>
+              <input type="text" id="about-name" name="name" placeholder="Your name" autocomplete="name" required>
+            </div>
+            <div class="about-field">
+              <label for="about-email">Email</label>
+              <input type="email" id="about-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <div class="about-field">
+              <label for="about-message">Message</label>
+              <textarea id="about-message" name="message" rows="5" placeholder="Reporting a bug? Say which page, what you pressed, and what you expected." required></textarea>
+            </div>
+            <button type="submit" class="about-submit" id="about-submit">Send message</button>
+            <p class="about-status" id="about-status" role="status" aria-live="polite"></p>
+          </form>
+        {% endif %}
+
+        <div class="about-channels">
+          <h3 class="about-sub about-sub-first">Direct channels</h3>
+          {% if links.email or links.facebook or links.github or links.youtube %}
+            <ul class="about-links">
+              {% if links.email %}<li><a href="mailto:{{ links.email }}">{{ links.email }}</a></li>{% endif %}
+              {% if links.facebook %}<li><a href="{{ links.facebook }}" target="_blank" rel="noopener">Facebook</a></li>{% endif %}
+              {% if links.github %}<li><a href="{{ links.github }}" target="_blank" rel="noopener">GitHub</a></li>{% endif %}
+              {% if links.youtube %}<li><a href="{{ links.youtube }}" target="_blank" rel="noopener">YouTube</a></li>{% endif %}
+            </ul>
+          {% else %}
+            <p class="about-text">Contact details are coming soon.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="about-card about-wide" id="support">
+      <h2 class="about-heading">Support me</h2>
+      <p class="about-text">
+        TCsMusic is free and has no ads. The best support is free too:
+        share it with another piano player, and tell me what to teach next.
+      </p>
+      <div class="about-actions">
+        {% if links.tip %}
+          <a class="about-button" href="{{ links.tip }}" target="_blank" rel="noopener">Tip via PayPal</a>
+        {% endif %}
+        {% if links.gcash_qr %}
+          <details class="about-qr">
+            <summary class="about-button about-button-ghost">Tip via GCash</summary>
+            <img src="{% static 'chords/support-qr.png' %}" alt="GCash QR code" width="220" height="220">
+            <p class="about-text">Scan with GCash or any QR Ph app.</p>
+          </details>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {% if emailjs.service and emailjs.template and emailjs.key %}
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="{% static 'chords/about.js' %}"></script>
+  {% endif %}
+{% endblock %}

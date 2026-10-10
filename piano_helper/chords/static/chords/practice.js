@@ -95,6 +95,7 @@
   async function playContext() {
     if (!current || modeSel.value !== "number") return;
     const data = await K.api(progressionUrl, { key: keySel.value, numerals: "1" });
+    K.stopAll();
     data.chords[0].midi.forEach((m) => K.playNote(m, 1.4, 0));
     current.chord.midi.forEach((m) => K.playNote(m, 1.7, 1.7));
   }
@@ -145,8 +146,6 @@
   loadScore();
   showScore();
   changeMode();
-
-
 
   
   // =============== metronome ===============

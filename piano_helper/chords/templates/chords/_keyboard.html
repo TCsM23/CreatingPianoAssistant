@@ -1,3 +1,47 @@
-<div class="main-keyboard-case">
-  <div id="main-keyboard-keys" class="main-keyboard-keys"></div>
+<div class="main-keyboard-wrap">
+  <div class="main-keyboard-bar">
+    <p class="main-keyboard-hint">Click a key, or hold the button and slide across the keys · C3 to C6</p>
+    <label class="main-keyboard-size-label">
+      <span>Sound</span>
+      <select id="main-keyboard-instrument" class="main-keyboard-size">
+        <option value="piano" selected>Grand Piano</option>
+        <option value="epiano">Electric Piano</option>
+        <option value="organ">Organ</option>
+        <option value="synth">Synthesizer</option>
+        <option value="harpsichord">Harpsichord</option>
+        <option value="musicbox">Music Box</option>
+      </select>
+    </label>
+    <div class="main-pedal" role="group" aria-label="Sustain pedal">
+      <span class="main-pedal-label">Pedal</span>
+      <button type="button" class="main-pedal-button" data-pedal="0" aria-pressed="true">Off</button>
+      <button type="button" class="main-pedal-button" data-pedal="0.5" aria-pressed="false">Half</button>
+      <button type="button" class="main-pedal-button" data-pedal="1" aria-pressed="false">Full</button>
+    </div>
+    <div class="main-midi" role="group" aria-label="MIDI keyboard">
+      <button type="button" id="main-midi-connect" class="main-transport-button">🎹 Connect MIDI</button>
+      <div class="main-midi-octave" id="main-midi-octave" hidden>
+        <button type="button" id="main-midi-octave-down" class="main-pedal-button" aria-label="Octave down">−</button>
+        <span id="main-midi-octave-label" class="main-pedal-label">Octave 0</span>
+        <button type="button" id="main-midi-octave-up" class="main-pedal-button" aria-label="Octave up">+</button>
+      </div>
+      <p id="main-midi-status" class="main-midi-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="main-typing" role="group" aria-label="Computer keyboard">
+      <button type="button" id="main-typing-toggle" class="main-transport-button" aria-pressed="true">⌨ Typing keys: on</button>
+      <div class="main-typing-octave" id="main-typing-octave">
+        <button type="button" id="main-typing-octave-down" class="main-pedal-button" aria-label="Typing keys octave down">−</button>
+        <span id="main-typing-octave-label" class="main-pedal-label">Octave 0</span>
+        <button type="button" id="main-typing-octave-up" class="main-pedal-button" aria-label="Typing keys octave up">+</button>
+      </div>
+    </div>
+    <div class="main-transport" role="group" aria-label="Playback">
+      <button type="button" id="main-transport-pause" class="main-transport-button" disabled>❚❚ Pause</button>
+      <button type="button" id="main-transport-clear" class="main-transport-button">✕ Clear keys</button>
+      <button type="button" id="main-transport-stop" class="main-transport-button">■ Stop</button>
+    </div>
+  </div>
+  <div class="main-keyboard-case">
+    <div id="main-keyboard-keys" class="main-keyboard-keys"></div>
+  </div>
 </div>

@@ -4,77 +4,108 @@
 {% block title %}Chord assistant · TCsMusic{% endblock %}
 
 {% block content %}
-  <h1>Chord assistant</h1>
+  <div class="main-top-grid">
+    <div class="main-top-intro">
+      <h1>Chord assistant</h1>
+      <p class="main-lede">
+        Pick a chord, a scale or a progression. The keys light up, you hear it,
+        and the notes are spelled out underneath.
+      </p>
+    </div>
 
-  <div class="main-chord-controls">
-    <label>Root
-      <select id="main-chord-root">
-        {% for note in note_names %}
-          <option value="{{ note }}">{{ note }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    <section class="main-chord-panel">
+      <div class="main-chord-controls">
+        <label>Root
+          <select id="main-chord-root">
+            {% for note in note_names %}
+              <option value="{{ note }}">{{ note }}</option>
+            {% endfor %}
+          </select>
+        </label>
 
-    <label>Type
-      <select id="main-chord-quality">
-        {% for key, label in qualities %}
-          <option value="{{ key }}">{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
+        <label>Type
+          <select id="main-chord-quality">
+            {% for key, label in qualities %}
+              <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
 
-    <button type="button" id="main-chord-find">Find chord</button>
-    <button type="button" id="main-chord-play">Play again</button>
+        <button type="button" id="main-chord-find">Find chord</button>
+        <button type="button" id="main-chord-play">Play again</button>
+      </div>
+      <p id="main-chord-result" class="main-chord-result">Pick a chord and press Find.</p>
+    </section>
   </div>
 
-  <p id="main-chord-result">Pick a chord and press Find.</p>
+  {% include "chords/_keyboard.html" %}
+  
+  <section class="main-identify-panel">
+    <div class="main-identify-side">
+      <h2>Identify a chord</h2>
+      <p class="main-identify-help">
+        Turn on <strong>Pick notes</strong>, then click keys to select them. Click a selected key again to
+        unselect it. The chord name appears as you go.
+      </p>
+      <div class="main-identify-controls">
+        <button type="button" id="main-identify-toggle" aria-pressed="false">Pick notes: off</button>
+        <button type="button" id="main-identify-play" disabled>Play notes</button>
+        <button type="button" id="main-identify-clear" disabled>Clear notes</button>
+      </div>
+    </div>
 
-    {% include "chords/_keyboard.html" %}
+    <div class="main-identify-out">
+      <p id="main-identify-notes" class="main-identify-notes" aria-live="polite">No notes picked yet.</p>
+      <ul id="main-identify-result" class="main-identify-result"></ul>
+    </div>
+  </section>
 
+  <div class="main-panels">
     <section class="main-scale-panel">
-    <h2>Scales</h2>
-    <div class="main-scale-controls">
-      <label>Root
-        <select id="main-scale-root">
-          {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
-        </select>
-      </label>
-      <label>Scale
-        <select id="main-scale-type">
-          <option value="major">Major</option>
-          <option value="minor">Natural minor</option>
-        </select>
-      </label>
-      <button type="button" id="main-scale-play">Play scale</button>
-    </div>
-    <p id="main-chord-result" class="main-chord-result">…</p>
-    <p id="main-scale-result" class="main-scale-result"></p>
-    <p id="main-progression-result" class="main-progression-result"></p>
-  </section>
+      <h2>Scales</h2>
+      <div class="main-scale-controls">
+        <label>Root
+          <select id="main-scale-root">
+            {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Scale
+          <select id="main-scale-type">
+            <option value="major">Major</option>
+            <option value="minor">Natural minor</option>
+          </select>
+        </label>
+        <button type="button" id="main-scale-play">Play scale</button>
+      </div>
+      <p id="main-scale-result" class="main-scale-result"></p>
+    </section>
 
-  <section class="main-progression-panel">
-    <h2>Progressions</h2>
-    <div class="main-progression-controls">
-      <label>Key
-        <select id="main-progression-key">
-          {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
-        </select>
-      </label>
-      <label>Numbers
-        <input type="text" id="main-progression-input" value="1-5-6m-4">
-      </label>
-      <button type="button" id="main-progression-play">Play progression</button>
-    </div>
-    <p id="main-progression-result"></p>
-  </section>
+    <section class="main-progression-panel">
+      <h2>Progressions</h2>
+      <div class="main-progression-controls">
+        <label>Key
+          <select id="main-progression-key">
+            {% for note in note_names %}<option value="{{ note }}">{{ note }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="main-progression-field">Numbers
+          <input type="text" id="main-progression-input" value="1-5-6m-4">
+        </label>
+        <button type="button" id="main-progression-play">Play progression</button>
+      </div>
+      <p id="main-progression-result" class="main-progression-result"></p>
+    </section>
+  </div>
 
   <script id="main-api-url" type="application/json">"{% url 'chords:api-chord' %}"</script>
   <script id="main-api-scale" type="application/json">"{% url 'chords:api-scale' %}"</script>
   <script id="main-api-progression" type="application/json">"{% url 'chords:api-progression' %}"</script>
+  <script id="main-api-identify" type="application/json">"{% url 'chords:api-identify' %}"</script>
 {% endblock %}
-  
 
 {% block scripts %}
-    <script src="{% static 'chords/piano-core.js' %}"></script>
-    <script src="{% static 'chords/assistant.js' %}"></script>
+  <script src="{% static 'chords/piano-core.js' %}"></script>
+  <script src="{% static 'chords/midi.js' %}"></script>
+  <script src="{% static 'chords/assistant.js' %}"></script>
+  <script src="{% static 'chords/typing.js' %}"></script>
 {% endblock %}

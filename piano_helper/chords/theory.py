@@ -14,6 +14,12 @@ CHORD_QUALITIES = {
     "7": ("7", "Dominant 7th", [0, 4, 7, 10]),
     "maj7": ("maj7", "Major 7th", [0, 4, 7, 11]),
     "m7": ("m7", "Minor 7th", [0, 3, 7, 10]),
+    "sus2": ("sus2", "Suspended 2nd", [0, 2, 7]),
+    "sus4": ("sus4", "Suspended 4th", [0, 5, 7]),
+    "6":    ("6",    "Major 6th",     [0, 4, 7, 9]),
+    "m6":   ("m6",   "Minor 6th",     [0, 3, 7, 9]),
+    "dim7": ("dim7", "Diminished 7th", [0, 3, 6, 9]),
+    "m7b5": ("m7b5", "Half-diminished 7th", [0, 3, 6, 10]),
 }
 
 SCALES = {
@@ -91,3 +97,47 @@ def build_progression(key, numerals, octave=4):
         chord["numeral"] = token
         chords.append(chord)
     return {"key": SHARP_NAMES[key_pc], "chords": chords}
+
+
+INTERVAL_NAMES = {
+    0: "Octave", 1: "Minor 2nd", 2: "Major 2nd", 3: "Minor 3rd", 4: "Major 3rd", 5: "Perfect 4th",
+    6: "Tritone", 7: "Perfect 5th", 8: "Minor 6th", 9: "Major 6th", 10: "Minor 7th", 11: "Major 7th",
+}
+
+def identify_chord(midi_list):
+    """Which chords contain exactly these notes? Root position is ranked first."""
+    midi = sorted({int(m) for m in midi_list})
+    if not midi:
+        raise TheoryError("Pick at least one note.")
+    bass = midi[0] % 12
+    pcs = {m % 12 for m in midi}
+
+    names = []
+    for m in midi:
+        name = SHARP_NAMES[m % 12]
+        if name not in names:
+            names.append(name)
+
+    interval = None
+    if len(midi) == 2:
+        interval = INTERVAL_NAMES[(midi[1] - midi[0]) % 12]
+
+    chords = []
+    if len(pcs) >= 3:
+        for root in range(12):
+            if root not in pcs:
+                continue
+            shape = {(p - root) % 12 for p in pcs}
+            for symbol, label, formula in CHORD_QUALITIES.values():
+                if shape == set(formula):
+                    name = SHARP_NAMES[root] + symbol
+                    inverted = root != bass
+                    if inverted:
+                        name += "/" + SHARP_NAMES[bass]
+                    chords.append({
+                        "name": name,
+                        "label": f"{SHARP_NAMES[root]} {label}",
+                        "inversion": inverted,
+                    })
+    chords.sort(key=lambda c: c["inversion"])
+    return {"notes": names, "midi": midi, "interval": interval, "chords": chords}

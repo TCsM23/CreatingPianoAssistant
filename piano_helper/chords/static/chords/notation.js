@@ -14,22 +14,27 @@
 
   async function handle(button) {
     const d = button.dataset;
+    K.stopAll();
     try {
       if (d.kind === "duration") {
         // a bar of four pulses at 60 BPM (one per second), then the note over the top
         const beats = parseFloat(d.beats);
-        for (let i = 0; i < 4; i++) K.playNote(48, 0.15, i, 0.05);
-        K.playNote(72, beats, 0, 0.12);
+        const events = [{ t: 0, midi: [72], dur: beats, volume: 0.12, show: false }];
+        for (let i = 0; i < 4; i++) {
+          events.push({ t: i, midi: [48], dur: 0.15, volume: 0.05, show: i < beats ? [72, 48] : [48] });
+        }
+        keyboard.schedule(events);
         statusEl.textContent = beats + (beats === 1 ? " beat" : " beats") + " at 60 BPM";
       } else if (d.kind === "dynamic") {
-        K.playChord(C_MAJOR, parseFloat(d.volume));
-        keyboard.light(C_MAJOR);
+        keyboard.schedule([{ t: 0, midi: C_MAJOR, dur: 1.8, volume: parseFloat(d.volume) }]);
         statusEl.textContent = button.textContent + ": C major";
       } else if (d.kind === "tempo") {
         const bpm = parseInt(d.bpm, 10);
+        const events = [];
         for (let i = 0; i < 8; i++) {
-          K.playNote(i % 4 === 0 ? 72 : 67, 0.15, (i * 60) / bpm, 0.1);
+          events.push({ t: (i * 60) / bpm, midi: [i % 4 === 0 ? 72 : 67], dur: 0.15, volume: 0.1 });
         }
+        keyboard.schedule(events);
         statusEl.textContent = bpm + " BPM";
       } else if (d.kind === "key") {
         const data = await K.api(scaleUrl, { root: d.root, scale: "major" });

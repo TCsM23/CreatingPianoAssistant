@@ -1,0 +1,89 @@
+{% extends "chords/base.html" %}
+{% load static %}
+
+{% block title %}Songs · TCsMusic{% endblock %}
+
+{% block content %}
+  <div class="songs-top-grid">
+    <div class="songs-top-intro">
+      <h1 class="songs-page-title">Songs</h1>
+      <p class="songs-page-intro">
+        Watch a piece play on the keys, load your own MIDI file, or record yourself
+        and export it to FL Studio.
+      </p>
+    </div>
+  </div>
+
+  {% include "chords/_keyboard.html" %}
+
+  <div class="songs-grid">
+    <section class="songs-card songs-now-card">
+      <h2 class="songs-heading">Now playing</h2>
+      <p class="songs-now-title" id="songs-now-title">Nothing loaded yet</p>
+      <p class="songs-now-meta" id="songs-now-meta">Pick a song, import a file, or record.</p>
+      <div class="songs-controls">
+        <button type="button" id="songs-play" disabled>▶ Play</button>
+        <label class="songs-speed-label">
+          <span>Speed</span>
+          <select id="songs-speed">
+            <option value="0.5">0.5×</option>
+            <option value="0.75">0.75×</option>
+            <option value="1" selected>1×</option>
+          </select>
+        </label>
+      </div>
+      <p class="songs-status" id="songs-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="songs-card songs-library-card">
+      <h2 class="songs-heading">Library</h2>
+      {% if library %}
+        <ul class="songs-library-list">
+          {% for song in library %}
+            <li class="songs-library-item">
+              <div class="songs-library-text">
+                <strong class="songs-library-title">{{ song.title }}</strong>
+                <span class="songs-library-composer">{{ song.composer }}</span>
+                <span class="songs-library-note">{{ song.note }}</span>
+              </div>
+              <button type="button" class="songs-library-play" data-src="{{ song.url }}" data-title="{{ song.title }}">▶ Play</button>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="songs-text">No built-in songs found. Add .mid files to the songs folder.</p>
+      {% endif %}
+    </section>
+
+    <section class="songs-card songs-mine-card">
+      <h2 class="songs-heading">My songs <span class="songs-mine-count" id="songs-mine-count"></span></h2>
+      <p class="songs-text" id="songs-mine-empty">Nothing saved yet. Imports and recordings appear here.</p>
+      <ul class="songs-mine-list" id="songs-mine-list"></ul>
+    </section>
+
+    <section class="songs-card songs-files-card">
+      <h2 class="songs-heading">Import, record, export</h2>
+      <p class="songs-text">
+        Files are read in your browser and never uploaded. Up to 10 imports and recordings are saved
+        in this browser only, and you can delete them any time. Clearing your browser data removes them,
+        so export anything you want to keep.
+        Notes below C3 or above C6 still sound, but there is no key on screen to light.
+      </p>
+      <div class="songs-controls">
+        <label class="songs-import-button" for="songs-import-input">⇪ Import MIDI</label>
+        <input type="file" id="songs-import-input" accept=".mid,.midi,audio/midi" hidden>
+        <button type="button" id="songs-record" aria-pressed="false">● Record</button>
+        <button type="button" id="songs-export" disabled>⇩ Export MIDI</button>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'chords/piano-core.js' %}"></script>
+  <script src="{% static 'chords/midi.js' %}"></script>
+  <script src="{% static 'chords/midifile.js' %}"></script>
+  <script src="{% static 'chords/songstore.js' %}"></script>
+  <script src="{% static 'chords/songs.js' %}"></script>
+  <script src="{% static 'chords/typing.js' %}"></script>
+{% endblock %}

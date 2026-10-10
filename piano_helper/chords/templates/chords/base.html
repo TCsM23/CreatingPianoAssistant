@@ -5,31 +5,57 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}TCsMusic{% endblock %}</title>
+  <script>
+    /* pick the saved theme before the page paints, so there is no flash */
+    try {
+      var saved = localStorage.getItem("tcsmusic-theme");
+      if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="{% static 'chords/piano.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'chords/favicon.svg' %}">
 </head>
-<body>
+<body id="top">
   <div class="site-backdrop" aria-hidden="true">
     <div class="site-backdrop-glow"></div>
     <div class="site-backdrop-playhead"></div>
     <div class="site-backdrop-staff site-backdrop-staff-upper"></div>
     <div class="site-backdrop-staff site-backdrop-staff-lower"></div>
+    <div class="site-backdrop-keys"></div>
   </div>
 
   <a class="site-skip-link" href="#main-content">Skip to content</a>
 
   <header class="site-header-bar">
-    <a class="site-header-brand" href="{% url 'chords:home' %}">TCs<span class="site-header-brand-music">Music</span></a>
-    <nav class="site-nav-list" aria-label="Main">
+    <a class="site-header-brand" href="{% url 'chords:home' %}">
+         <img class="site-header-logo" src="{% static 'chords/favicon.svg' %}" alt="header-icon">
+      <span>TCs<span class="site-header-brand-music">Music</span></span>
+    </a>
+
+    <button type="button" class="site-nav-toggle" id="site-nav-toggle"
+            aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+      <span class="site-nav-toggle-bars" aria-hidden="true"></span>
+    </button>
+
+    <nav class="site-nav-list" id="site-nav" aria-label="Main">
       <a class="site-nav-link" href="{% url 'chords:home' %}"
          {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Home</a>
       <a class="site-nav-link" href="{% url 'chords:assistant' %}"
          {% if request.resolver_match.url_name == 'assistant' %}aria-current="page"{% endif %}>Assistant</a>
       <a class="site-nav-link" href="{% url 'chords:learn' %}"
-         {% if request.resolver_match.url_name == 'learn' %}aria-current="page"{% endif %}>Learn</a>      
+         {% if request.resolver_match.url_name == 'learn' %}aria-current="page"{% endif %}>Learn</a>
       <a class="site-nav-link" href="{% url 'chords:practice' %}"
-         {% if request.resolver_match.url_name == 'practice' %}aria-current="page"{% endif %}>Practice</a>    
+         {% if request.resolver_match.url_name == 'practice' %}aria-current="page"{% endif %}>Practice</a>
       <a class="site-nav-link" href="{% url 'chords:notation' %}"
-         {% if request.resolver_match.url_name == 'notation' %}aria-current="page"{% endif %}>Notation</a>    
+         {% if request.resolver_match.url_name == 'notation' %}aria-current="page"{% endif %}>Notation</a>
+      <a class="site-nav-link" href="{% url 'chords:songs' %}"
+         {% if request.resolver_match.url_name == 'songs' %}aria-current="page"{% endif %}>Songs</a>
+      <a class="site-nav-link" href="{% url 'chords:about' %}"
+         {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %}>About</a>
+      <button type="button" class="site-theme-toggle" id="site-theme-toggle" aria-label="Switch to light mode" aria-pressed="false">
+        <svg class="site-theme-toggle-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="site-theme-toggle-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
     </nav>
   </header>
 
@@ -38,14 +64,57 @@
   </main>
 
   <footer class="site-footer-bar">
-    <p class="site-footer-brand">TCs<span class="site-header-brand-music">Music</span>™</p>
-    <p class="site-footer-note">A piano assistant for self-taught players who want to know why.</p>
-    <p class="site-footer-legal">© {% now "Y" %} TCsMusic™</p>
+    <div class="site-footer-grid">
+      <div class="site-footer-about">
+        <p class="site-footer-brand">TCs<span class="site-header-brand-music">Music</span>™</p>
+        <p class="site-footer-note">A piano assistant for self-taught players who want to know why.</p>
+        <p class="site-footer-tag">Chords · Scales · Progressions · Ear training</p>
+      </div>
+
+      <nav class="site-footer-col" aria-label="Explore">
+        <h2 class="site-footer-heading">Explore</h2>
+        <ul class="site-footer-list">
+          <li><a href="{% url 'chords:assistant' %}">Chord assistant</a></li>
+          <li><a href="{% url 'chords:learn' %}">Learn</a></li>
+          <li><a href="{% url 'chords:practice' %}">Practice</a></li>
+          <li><a href="{% url 'chords:notation' %}">Notation</a></li>
+          <li><a href="{% url 'chords:songs' %}">Songs</a></li>
+        </ul>
+      </nav>
+
+      <nav class="site-footer-col" aria-label="The method">
+        <h2 class="site-footer-heading">The method</h2>
+        <ul class="site-footer-list">
+          <li><a href="{% url 'chords:learn' %}#letters">Letters</a></li>
+          <li><a href="{% url 'chords:learn' %}#words">Words</a></li>
+          <li><a href="{% url 'chords:learn' %}#sentences">Sentences</a></li>
+          <li><a href="{% url 'chords:learn' %}#patterns">The three B’s</a></li>
+        </ul>
+      </nav>
+
+      <nav class="site-footer-col" aria-label="Reference">
+        <h2 class="site-footer-heading">Reference</h2>
+        <ul class="site-footer-list">
+          <li><a href="{% url 'chords:notation' %}#values">Note values</a></li>
+          <li><a href="{% url 'chords:notation' %}#dynamics">Dynamics</a></li>
+          <li><a href="{% url 'chords:notation' %}#tempo">Tempo</a></li>
+          <li><a href="{% url 'chords:notation' %}#keys">Key signatures</a></li>
+          <li><a href="{% url 'chords:about' %}#reference">Shortcuts &amp; chords</a></li>
+          <li><a href="{% url 'chords:about' %}#contact">Contact</a></li>
+          <li><a href="{% url 'chords:about' %}#support">Support me</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="site-footer-base">
+      <p class="site-footer-legal">© {% now "Y" %} TCsMusic™</p>
+      <a class="site-footer-top" href="#top">Back to top ↑</a>
+    </div>
   </footer>
 
+  <script src="{% static 'chords/nav.js' %}"></script>
   <script src="{% static 'chords/backdrop.js' %}"></script>
-  
+  <script src="{% static 'chords/theme.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
-    
 </html>

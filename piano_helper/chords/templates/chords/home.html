@@ -1,42 +1,117 @@
 {% extends "chords/base.html" %}
+{% load static %}
 
 {% block title %}TCsMusic · Learn piano by understanding it{% endblock %}
 
 {% block content %}
   <section class="home-hero-section">
-    <h1 class="home-hero-title">TCsMusic</h1>
-    <p class="home-hero-tagline">
-      A piano assistant that shows you why the notes fit together, so you stop memorising and start understanding.
-    </p>
-    <a class="home-hero-button" href="{% url 'chords:assistant' %}">Open the assistant</a>
+    <div class="home-hero-copy">
+      <p class="home-hero-eyebrow">A piano assistant for self-taught players</p>
+      <h1 class="home-hero-title">TCs<span class="site-header-brand-music">Music</span></h1>
+      <p class="home-hero-tagline">
+        See why the notes fit together, so you stop memorising and start understanding.
+      </p>
+      <div class="home-hero-actions">
+        <a class="home-hero-button" href="{% url 'chords:assistant' %}">Open the assistant</a>
+        <button type="button" id="home-hear" class="home-hero-ghost">▶ Hear 1 – 5 – 6m – 4</button>
+      </div>
+      <ul class="home-hero-facts">
+        <li><strong>6</strong> chords cover most songs</li>
+        <li><strong>12</strong> keys, one shape</li>
+        <li><strong>3</strong> ways to play any chord</li>
+      </ul>
+    </div>
+
+    <div class="home-hero-stage" id="home-stage" aria-hidden="true">
+      <div class="home-stage-bars" id="home-stage-bars"></div>
+      <div class="home-stage-keys" id="home-stage-keys"></div>
+    </div>
+  </section>
+
+  <section class="home-method-section">
+    <a class="home-method-step" href="{% url 'chords:learn' %}#letters">
+      <span class="home-method-label">Letters</span>
+      <span class="home-method-sample">1 2 3 4 5 6 7</span>
+      <span class="home-method-text">Numbers replace note names, so one lesson works in every key.</span>
+    </a>
+    <a class="home-method-step" href="{% url 'chords:learn' %}#words">
+      <span class="home-method-label">Words</span>
+      <span class="home-method-sample">1 · 4 · 5 · 6m</span>
+      <span class="home-method-text">Six chords, each with a job: home, lift, pull, shadow.</span>
+    </a>
+    <a class="home-method-step" href="{% url 'chords:learn' %}#sentences">
+      <span class="home-method-label">Sentences</span>
+      <span class="home-method-sample">1 – 5 – 6m – 4</span>
+      <span class="home-method-text">Chords in order make a progression. Learn the shape once.</span>
+    </a>
   </section>
 
   <section class="home-programme-section">
     <h2 class="home-programme-heading">The programme</h2>
     <ol class="home-programme-list">
       <li class="home-programme-item">
+        <span class="home-programme-number">01</span>
         <h3 class="home-programme-title">Practise at the keyboard</h3>
         <p class="home-programme-text">
           Pick any chord, scale or progression, then see it light up and hear it played. Repeat until your hands know it.
         </p>
+        <a class="home-programme-link" href="{% url 'chords:assistant' %}">Open the assistant →</a>
       </li>
       <li class="home-programme-item">
+        <span class="home-programme-number">02</span>
         <h3 class="home-programme-title">Learn what self-teaching skips</h3>
         <p class="home-programme-text">
           Chords as letters, six chords as words, progressions as sentences. Lessons that are hard to find on your own.
         </p>
+        <a class="home-programme-link" href="{% url 'chords:learn' %}">Start learning →</a>
       </li>
       <li class="home-programme-item">
+        <span class="home-programme-number">03</span>
         <h3 class="home-programme-title">Know why theory matters</h3>
         <p class="home-programme-text">
           Theory is the shortcut. Once you see the pattern, a song in any key is the same song.
         </p>
+        <a class="home-programme-link" href="{% url 'chords:notation' %}">Read the notation →</a>
       </li>
     </ol>
   </section>
 
+  <section class="home-library-section">
+    <h2 class="home-library-heading">The toolbox</h2>
+    <ul class="home-library-grid">
+      <li><a class="home-library-tile" href="{% url 'chords:assistant' %}">
+        <span class="home-library-glyph">♪</span>
+        <span class="home-library-name">Assistant</span>
+        <span class="home-library-text">Chords, scales and progressions on a keyboard.</span>
+      </a></li>
+      <li><a class="home-library-tile" href="{% url 'chords:learn' %}">
+        <span class="home-library-glyph">♫</span>
+        <span class="home-library-name">Learn</span>
+        <span class="home-library-text">Letters, words and sentences, with sound.</span>
+      </a></li>
+      <li><a class="home-library-tile" href="{% url 'chords:practice' %}">
+        <span class="home-library-glyph">♩</span>
+        <span class="home-library-name">Practice</span>
+        <span class="home-library-text">An ear trainer and a metronome that speeds up.</span>
+      </a></li>
+      <li><a class="home-library-tile" href="{% url 'chords:notation' %}">
+        <span class="home-library-glyph">♯</span>
+        <span class="home-library-name">Notation</span>
+        <span class="home-library-text">Note values, dynamics, tempo and key signatures.</span>
+      </a></li>
+    </ul>
+  </section>
+
   <section class="home-closing-section">
     <p class="home-closing-text">Ready to hear it?</p>
-    <a class="home-hero-button" href="{% url 'chords:assistant' %}">Start playing</a>
+    <div class="home-closing-actions">
+      <a class="home-hero-button" href="{% url 'chords:assistant' %}">Start playing</a>
+      <a class="home-hero-button home-hero-outline" href="{% url 'chords:learn' %}">Learn the method</a>
+    </div>
   </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'chords/piano-core.js' %}"></script>
+  <script src="{% static 'chords/landing.js' %}"></script>
 {% endblock %}
