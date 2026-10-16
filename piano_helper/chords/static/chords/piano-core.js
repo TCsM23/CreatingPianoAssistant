@@ -7,6 +7,14 @@ window.PianoKit = (function () {
   let audioCtx = null;
   let compressor = null;
   let master = null;
+  let toneFilter = null; // the brightness control (a MIDI fader or knob can move it)
+  let levelGain = null;  // the volume control
+  let vibrato = null;    // a slow wobble that the mod wheel opens up
+  let bendCents = 0;     // pitch wheel: -200 to +200 cents (two semitones)
+  let vibratoCents = 0;  // mod wheel: 0 to 45 cents of wobble
+  let toneNorm = 1;      // 0 dark to 1 bright
+  let levelNorm = 1;     // 0 silent to 1 full
+  const liveOscs = new Set();
   const keyboards = [];
   let mainBoard = null; // the big keyboard on the page (not the floating copy)
 
@@ -24,12 +32,25 @@ window.PianoKit = (function () {
     const ctx = getCtx();
     if (!compressor) {
       compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -18;
-      compressor.knee.value = 12;
-      compressor.ratio.value = 6;
-      compressor.attack.value = 0.003;
+      compressor.threshold.value = -12;
+      compressor.knee.value = 24;
+      compressor.ratio.value = 3;
+      compressor.attack.value = 0.01;
       compressor.release.value = 0.25;
-      compressor.connect(ctx.destination);
+      toneFilter = ctx.createBiquadFilter();
+      toneFilter.type = "lowpass";
+      toneFilter.frequency.value = toneHz(toneNorm);
+      levelGain = ctx.createGain();
+      levelGain.gain.value = levelNorm * levelNorm;
+      compressor.connect(toneFilter);
+      toneFilter.connect(levelGain);
+      levelGain.connect(ctx.destination);
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 5.5;
+      vibrato = ctx.createGain();
+      vibrato.gain.value = vibratoCents;
+      lfo.connect(vibrato);
+      lfo.start();
     }
     if (!master) {
       master = ctx.createGain();
@@ -37,6 +58,33 @@ window.PianoKit = (function () {
       master.connect(compressor);
     }
     return master;
+  }
+
+  function toneHz(norm) {
+    return 250 * Math.pow(80, norm); // 250 Hz (dark) up to 20 kHz (bright)
+  }
+
+  // Pitch wheel, mod wheel, brightness and volume. Each takes a number from 0 to 1
+  // (the pitch wheel from -1 to 1) and changes sounds that are already ringing, too.
+  function setPitchBend(norm) {
+    bendCents = Math.max(-1, Math.min(1, norm)) * 200;
+    if (audioCtx) liveOscs.forEach((osc) => osc.detune.setTargetAtTime(bendCents, audioCtx.currentTime, 0.01));
+  }
+  function setVibrato(norm) {
+    vibratoCents = Math.max(0, Math.min(1, norm)) * 45;
+    if (vibrato) vibrato.gain.setTargetAtTime(vibratoCents, audioCtx.currentTime, 0.02);
+  }
+  function setTone(norm) {
+    toneNorm = Math.max(0, Math.min(1, norm));
+    if (toneFilter) toneFilter.frequency.setTargetAtTime(toneHz(toneNorm), audioCtx.currentTime, 0.02);
+  }
+  function setLevel(norm) {
+    levelNorm = Math.max(0, Math.min(1, norm));
+    if (levelGain) levelGain.gain.setTargetAtTime(levelNorm * levelNorm, audioCtx.currentTime, 0.02);
+  }
+
+  function noteName(midi) {
+    return ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"][midi % 12] + (Math.floor(midi / 12) - 1);
   }
 
   function midiToFreq(midi) {
@@ -47,13 +95,22 @@ window.PianoKit = (function () {
   // so tilt the volume by register and give low notes extra upper harmonics.
   function registerGain(midi) {
     const gain = Math.pow(2, (-0.8 * (midi - 60)) / 12);
-    return Math.min(2.6, Math.max(0.35, gain));
+    return Math.min(1.8, Math.max(0.45, gain));
   }
   // ---------- instruments ----------
   // partials: [wave, multiple of the pitch, level]. life: how long a ringing note lasts (seconds).
   // sustain: set it and the note holds at that level while the key is down (organ, synth).
+  const PIANO_AMPS = [1, 0.5, 0.32, 0.2, 0.12, 0.08, 0.05, 0.03];
+  const PIANO_PARTIALS = PIANO_AMPS.map((a, i) => ["sine", (i + 1) * Math.sqrt(1 + 0.0004 * (i + 1) * (i + 1)), a, 1 + 0.9 * i])
+    .concat([0, 1, 2, 3].map((i) => ["sine", (i + 1) * Math.sqrt(1 + 0.0004 * (i + 1) * (i + 1)) * 1.0007, PIANO_AMPS[i] * 0.7, 1 + 0.9 * i]));
+  // how long (seconds) the lowest partial of a piano note takes to fall by about 63%: long for bass, short for treble
+  function pianoTau(midi) {
+    return Math.min(5, Math.max(0.5, 2.4 * Math.pow(2, -(midi - 48) / 20)));
+  }
   const INSTRUMENTS = {
-    piano:    { name: "Grand Piano", partials: [["triangle", 1, 1], ["sine", 1, 1], ["sine", 2, 0.15], ["sine", 3, 0.08]], lowBoost: true, attack: 0.02, life: 99, trim: 1 },
+    // A piano string rings with a handful of slightly stretched harmonics, and the high ones die away
+    // first. A second, barely detuned copy of the lowest four gives the soft shimmer of two strings.
+    piano:    { name: "Grand Piano", partials: PIANO_PARTIALS, lowBoost: true, attack: 0.012, life: 99, cutoff: 6500, trim: 0.75 },
     epiano:   { name: "Electric Piano", partials: [["sine", 1, 1], ["sine", 2, 0.3], ["sine", 4, 0.1], ["sine", 7, 0.04]], attack: 0.01, life: 4, trim: 1.6 },
     organ:    { name: "Organ", partials: [["sine", 0.5, 0.5], ["sine", 1, 1], ["sine", 2, 0.7], ["sine", 3, 0.35], ["sine", 4, 0.25]], attack: 0.015, sustain: 1, trim: 0.4 },
     synth:    { name: "Synthesizer", partials: [["sawtooth", 1, 0.5], ["sawtooth", 1.006, 0.5], ["square", 0.5, 0.3]], attack: 0.04, sustain: 0.7, cutoff: 2400, trim: 1.2 },
@@ -69,6 +126,60 @@ window.PianoKit = (function () {
   const instrumentSelect = document.getElementById("main-keyboard-instrument");
   if (instrumentSelect) {
     instrumentSelect.addEventListener("change", () => setInstrument(instrumentSelect.value));
+  }
+
+  // One note into any context and any node (the Studio uses this for its piano roll and for
+  // WAV export). Same instruments as playNote, but no pedal, wheel or vibrato.
+  function noteInto(ctx, dest, midi, start, duration, volume = 0.12, name = instrument) {
+    const inst = INSTRUMENTS[name] || INSTRUMENTS.piano;
+    const peak = volume * registerGain(midi) * inst.trim;
+    const freq = midiToFreq(midi) * (inst.octave || 1);
+    const low = inst.lowBoost ? Math.min(1, Math.max(0, (60 - midi) / 24)) : 0;
+    const end = start + duration;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(peak, start + inst.attack);
+    if (inst.sustain) {
+      const level = peak * inst.sustain;
+      gain.gain.exponentialRampToValueAtTime(level, start + inst.attack + 0.05);
+      gain.gain.setValueAtTime(level, Math.max(start + inst.attack + 0.05, end - 0.1));
+      gain.gain.exponentialRampToValueAtTime(0.0001, end + 0.05);
+    } else {
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.min(duration + 0.25, inst.life));
+    }
+    gain.connect(dest);
+    let sink = gain;
+    if (inst.cutoff) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = inst.cutoff;
+      filter.connect(gain);
+      sink = filter;
+    }
+    inst.partials.forEach(([type, multiple, level, decayK], index) => {
+      let amount = level;
+      if (index === 2) amount += 0.54 * low;
+      if (index === 3) amount += 0.4 * low;
+      const osc = ctx.createOscillator();
+      const part = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq * multiple;
+      part.gain.setValueAtTime(amount, start);
+      if (decayK) part.gain.setTargetAtTime(amount * 0.04, start + inst.attack, pianoTau(midi) / decayK);
+      osc.connect(part);
+      part.connect(sink);
+      osc.start(start);
+      osc.stop(end + 0.35);
+    });
+  }
+
+  function getMix() {
+    getBus();
+    return compressor; // a node that stays put, for things that feed the shared output
+  }
+
+  function getInstrument() {
+    return instrument;
   }
 
   function playNote(midi, duration = 1.8, when = 0, volume = 0.12) {
@@ -110,7 +221,7 @@ window.PianoKit = (function () {
     }
 
     const oscs = [];
-    inst.partials.forEach(([type, multiple, level], index) => {
+    inst.partials.forEach(([type, multiple, level, decayK], index) => {
       let amount = level;
       if (index === 2) amount += 0.54 * low; // low piano notes get extra upper harmonics
       if (index === 3) amount += 0.4 * low;
@@ -118,7 +229,15 @@ window.PianoKit = (function () {
       const part = ctx.createGain();
       osc.type = type;
       osc.frequency.value = freq * multiple;
-      part.gain.value = amount;
+      osc.detune.value = bendCents;
+      vibrato.connect(osc.detune);
+      liveOscs.add(osc);
+      osc.onended = () => {
+        liveOscs.delete(osc);
+        try { vibrato.disconnect(osc.detune); } catch (e) { /* already gone */ }
+      };
+      part.gain.setValueAtTime(amount, start);
+      if (decayK) part.gain.setTargetAtTime(amount * 0.04, start + inst.attack, pianoTau(midi) / decayK);
       osc.connect(part);
       part.connect(sink);
       osc.start(start);
@@ -266,7 +385,13 @@ window.PianoKit = (function () {
   }
 
   // ---------- keyboard ----------
-  function createKeyboard(keysEl, caseEl, low = 48, high = 84, options = {}) {
+  // The keyboard shows three octaves at a time (37 keys) and slides along an 88-key piano, A0 to C8.
+  const PIANO_LOW = 21;
+  const PIANO_HIGH = 108;
+
+  function createKeyboard(keysEl, caseEl, startLow = 48, startHigh = 84, options = {}) {
+    let low = startLow;
+    let high = startHigh;
     const mini = options.mini === true; // the small floating copy
     let dock = null;
     const keyByMidi = {};
@@ -292,7 +417,9 @@ window.PianoKit = (function () {
       if (audioCtx && audioCtx.state === "suspended") stopAll();
       const voice = playNote(midi, 9, 0, volume);
       touches.set(id, { midi, voice, at: audioCtx.currentTime });
+      if (!keyByMidi[midi]) reveal([midi]); // a note outside the three octaves on screen: slide to it
       if (keyByMidi[midi]) keyByMidi[midi].classList.add("is-down");
+      else flashEdge(midi);
       document.dispatchEvent(new CustomEvent("pianokit:play"));
       if (noteHandler) noteHandler(midi, true, volume);
     }
@@ -330,10 +457,19 @@ window.PianoKit = (function () {
       keysEl.addEventListener(name, (event) => lift(event.pointerId));
     });
 
+    let litNotes = [];
+    let markedNotes = [];
+    const rangeListeners = [];
+
     function build() {
+      keysEl.replaceChildren();
+      Object.keys(keyByMidi).forEach((midi) => delete keyByMidi[midi]);
+      Object.keys(leftOf).forEach((midi) => delete leftOf[midi]);
+      whiteCount = 0;
       for (let midi = low; midi <= high; midi++) {
         const key = document.createElement("div");
         key.dataset.midi = midi;
+        if (midi % 12 === 0) key.dataset.c = "C" + (midi / 12 - 1); // C3, C4... shows which octave is on screen
         if (BLACK_PCS.includes(midi % 12)) {
           key.className = "main-keyboard-key main-keyboard-key-black";
         } else {
@@ -343,6 +479,16 @@ window.PianoKit = (function () {
         keysEl.appendChild(key);
         keyByMidi[midi] = key;
       }
+      // keys that were down, lit or picked stay that way after a slide
+      touches.forEach((held) => {
+        if (keyByMidi[held.midi]) keyByMidi[held.midi].classList.add("is-down");
+      });
+      litNotes.forEach((midi) => {
+        if (keyByMidi[midi]) keyByMidi[midi].classList.add("is-lit");
+      });
+      markedNotes.forEach((midi) => {
+        if (keyByMidi[midi]) keyByMidi[midi].classList.add("is-picked");
+      });
     }
 
     // Size the keys to fill the case (between 34px and 64px per white key).
@@ -372,13 +518,84 @@ window.PianoKit = (function () {
       }
     }
 
+    // ---------- the three-octave window ----------
+    function startOf(midi) {
+      return Math.floor(midi / 12) * 12; // the C at or below this note
+    }
+
+    function getRange() {
+      return { low, high, start: low === PIANO_LOW ? 24 : low };
+    }
+
+    function setRange(newLow, newHigh) {
+      if (newLow === low && newHigh === high) return;
+      low = newLow;
+      high = newHigh;
+      build();
+      lastRoom = -1;
+      layout();
+      caseEl.scrollLeft = 0;
+      if (dock) dock.setRange(low, high);
+      rangeListeners.forEach((fn) => fn(getRange()));
+    }
+
+    // Slide the window so it starts on this C. C1 is the lowest start (it also shows A0 to B0)
+    // and C5 the highest (it ends on C8), so you can never go past the 88 keys of a piano.
+    function setOctave(startC) {
+      const start = Math.max(24, Math.min(72, Math.round(startC / 12) * 12));
+      setRange(start === 24 ? PIANO_LOW : start, start + 36);
+    }
+
+    function shiftOctave(step) {
+      setOctave(getRange().start + step * 12);
+    }
+
+    function onRange(fn) {
+      rangeListeners.push(fn);
+      fn(getRange());
+    }
+
+    // If a note is off screen, slide to its octave (it lands in the middle octave of the window).
+    function reveal(midiList) {
+      const known = midiList.filter((midi) => midi >= PIANO_LOW && midi <= PIANO_HIGH);
+      if (!known.length || known.every((midi) => keyByMidi[midi])) return;
+      setOctave(startOf(Math.round((Math.min(...known) + Math.max(...known)) / 2)) - 12);
+    }
+
     function centerOn(midi) {
-      if (leftOf[midi] === undefined) return;
-      caseEl.scrollTo({ left: leftOf[midi] - caseEl.clientWidth / 2, behavior: "smooth" });
+      reveal([midi]);
+    }
+
+    // A note beyond the last key (a MIDI keyboard shifted several octaves) cannot be shown, so say so.
+    let edgeLow = null;
+    let edgeHigh = null;
+    let edgeTimer = null;
+    function flashEdge(midi) {
+      if (mini || !caseEl.parentNode) return;
+      if (!edgeLow) {
+        const wrap = caseEl.parentNode;
+        edgeLow = document.createElement("span");
+        edgeLow.className = "main-keyboard-edge main-keyboard-edge-low";
+        edgeHigh = document.createElement("span");
+        edgeHigh.className = "main-keyboard-edge main-keyboard-edge-high";
+        wrap.append(edgeLow, edgeHigh);
+      }
+      const below = midi < low;
+      const badge = below ? edgeLow : edgeHigh;
+      (below ? edgeHigh : edgeLow).classList.remove("is-on");
+      badge.textContent = below ? "\u25C0 " + noteName(midi) : noteName(midi) + " \u25B6";
+      badge.style.top = caseEl.offsetTop + 6 + "px";
+      badge.classList.add("is-on");
+      clearTimeout(edgeTimer);
+      edgeTimer = setTimeout(() => {
+        edgeLow.classList.remove("is-on");
+        edgeHigh.classList.remove("is-on");
+      }, 900);
     }
 
     // paint only changes which keys are lit; light also scrolls, glows the backdrop and feeds the dock
     function paint(midiList) {
+      litNotes = midiList.slice();
       Object.values(keyByMidi).forEach((key) => key.classList.remove("is-lit"));
       midiList.forEach((midi) => {
         if (keyByMidi[midi]) keyByMidi[midi].classList.add("is-lit");
@@ -387,7 +604,7 @@ window.PianoKit = (function () {
 
     function light(midiList) {
       paint(midiList);
-      if (midiList.length) centerOn(midiList[0]);
+      reveal(midiList);
       if (midiList.length) document.dispatchEvent(new CustomEvent("pianokit:play"));
       if (dock) dock.follow(midiList);
     } 
@@ -400,6 +617,7 @@ window.PianoKit = (function () {
 
     // Mark the keys the user has picked (a separate look from the lit keys).
     function mark(midiList) {
+      markedNotes = midiList.slice();
       Object.keys(keyByMidi).forEach((midi) => {
         keyByMidi[midi].classList.toggle("is-picked", midiList.includes(Number(midi)));
       });
@@ -450,7 +668,6 @@ window.PianoKit = (function () {
     layout();
     if (window.ResizeObserver) new ResizeObserver(layout).observe(caseEl);
     else window.addEventListener("resize", layout);
-    centerOn(60);
 
     // MIDI keyboards: a note on or off, the same as pressing and lifting a key with the mouse
     function down(midi, volume) {
@@ -470,7 +687,10 @@ window.PianoKit = (function () {
       noteHandler = fn;
     }
 
-    const board = { light, paint, centerOn, schedule, cancel, onKey, mark, down, up, onNote };
+    const board = {
+      light, paint, centerOn, reveal, schedule, cancel, onKey, mark, down, up, onNote,
+      setRange, setOctave, shiftOctave, getRange, onRange,
+    };
 
     // ---------- the floating piano ----------
     // When this keyboard is scrolled out of view and something plays, a small copy
@@ -514,6 +734,9 @@ window.PianoKit = (function () {
       });
 
       return {
+        setRange(newLow, newHigh) {
+          copy.setRange(newLow, newHigh);
+        },
         follow(midiList) {
           copy.paint(midiList);
           if (midiList.length) {
@@ -527,6 +750,20 @@ window.PianoKit = (function () {
     }
 
     if (!mini) dock = makeDock();
+    if (!mini) {
+      const downButton = document.getElementById("main-octave-down");
+      const upButton = document.getElementById("main-octave-up");
+      const label = document.getElementById("main-octave-label");
+      if (downButton && upButton && label) {
+        onRange((range) => {
+          label.textContent = noteName(range.low) + " \u2013 " + noteName(range.high);
+          downButton.disabled = range.start <= 24;
+          upButton.disabled = range.start >= 72;
+        });
+        downButton.addEventListener("click", () => shiftOctave(-1));
+        upButton.addEventListener("click", () => shiftOctave(1));
+      }
+    }
     const clearButton = document.getElementById("main-transport-clear");
     if (clearButton) clearButton.addEventListener("click", () => light([]));
     keyboards.push(board);
@@ -543,5 +780,9 @@ window.PianoKit = (function () {
     return mainBoard;
   }
 
-  return { playNote, playChord, stopAll, api, createKeyboard, getCtx, setInstrument, setMidiPedal, getBoard };
+  return {
+    playNote, noteInto, getMix, getInstrument, playChord, stopAll, api, createKeyboard, getCtx, getBus,
+    setInstrument, setMidiPedal, getBoard,
+    setPitchBend, setVibrato, setTone, setLevel, noteName,
+  };
 })();

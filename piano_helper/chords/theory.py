@@ -20,6 +20,32 @@ CHORD_QUALITIES = {
     "m6":   ("m6",   "Minor 6th",     [0, 3, 7, 9]),
     "dim7": ("dim7", "Diminished 7th", [0, 3, 6, 9]),
     "m7b5": ("m7b5", "Half-diminished 7th", [0, 3, 6, 10]),
+    "5":     ("5",     "Power chord",        [0, 7]),
+    "add9":  ("add9",  "Major add 9",        [0, 4, 7, 14]),
+    "madd9": ("madd9", "Minor add 9",        [0, 3, 7, 14]),
+    "69":    ("6/9",   "Six-nine",           [0, 4, 7, 9, 14]),
+    "9":     ("9",     "Dominant 9th",       [0, 4, 7, 10, 14]),
+    "maj9":  ("maj9",  "Major 9th",          [0, 4, 7, 11, 14]),
+    "m9":    ("m9",    "Minor 9th",          [0, 3, 7, 10, 14]),
+    "7sus4": ("7sus4", "Dominant 7 sus 4",   [0, 5, 7, 10]),
+    "mmaj7": ("m(maj7)", "Minor-major 7th",  [0, 3, 7, 11]),
+    "aug7":  ("7#5",   "Augmented 7th",      [0, 4, 8, 10]),
+    "7b9":   ("7b9",   "Dominant 7 flat 9",  [0, 4, 7, 10, 13]),
+    "7s9":   ("7#9",   "Dominant 7 sharp 9", [0, 4, 7, 10, 15]),
+}
+
+# what to call each shape: a triad has three notes, a seventh chord has four
+CHORD_KINDS = {
+    "maj": "Triad", "min": "Triad", "dim": "Triad", "aug": "Triad",
+    "7": "Seventh chord", "maj7": "Seventh chord", "m7": "Seventh chord",
+    "dim7": "Seventh chord", "m7b5": "Seventh chord",
+    "sus2": "Suspended chord", "sus4": "Suspended chord",
+    "6": "Sixth chord", "m6": "Sixth chord", "69": "Sixth chord",
+    "5": "Power chord",
+    "add9": "Added-note chord", "madd9": "Added-note chord",
+    "9": "Ninth chord", "maj9": "Ninth chord", "m9": "Ninth chord",
+    "7sus4": "Suspended chord", "mmaj7": "Seventh chord", "aug7": "Seventh chord",
+    "7b9": "Altered dominant", "7s9": "Altered dominant",
 }
 
 SCALES = {
@@ -128,8 +154,8 @@ def identify_chord(midi_list):
             if root not in pcs:
                 continue
             shape = {(p - root) % 12 for p in pcs}
-            for symbol, label, formula in CHORD_QUALITIES.values():
-                if shape == set(formula):
+            for key, (symbol, label, formula) in CHORD_QUALITIES.items():
+                if shape == {f % 12 for f in formula}:
                     name = SHARP_NAMES[root] + symbol
                     inverted = root != bass
                     if inverted:
@@ -138,6 +164,74 @@ def identify_chord(midi_list):
                         "name": name,
                         "label": f"{SHARP_NAMES[root]} {label}",
                         "inversion": inverted,
+                        "kind": CHORD_KINDS[key],
                     })
     chords.sort(key=lambda c: c["inversion"])
     return {"notes": names, "midi": midi, "interval": interval, "chords": chords}
+
+# ---------- which key do these notes belong to? ----------
+# major key note -> (name, sharps as a positive number or flats as a negative one)
+MAJOR_KEYS = {
+    0: ("C", 0), 7: ("G", 1), 2: ("D", 2), 9: ("A", 3), 4: ("E", 4), 11: ("B", 5),
+    6: ("F#", 6), 1: ("Db", -5), 8: ("Ab", -4), 3: ("Eb", -3), 10: ("Bb", -2), 5: ("F", -1),
+}
+# the relative minor starts three semitones below its major key
+MINOR_NAMES = {
+    9: "A", 4: "E", 11: "B", 6: "F#", 1: "C#", 8: "G#", 3: "D#",
+    10: "Bb", 5: "F", 0: "C", 7: "G", 2: "D",
+}
+SHARP_ORDER = ["F#", "C#", "G#", "D#", "A#", "E#", "B#"]
+FLAT_ORDER = ["Bb", "Eb", "Ab", "Db", "Gb", "Cb", "Fb"]
+
+
+def describe_signature(count):
+    if count == 0:
+        return "no sharps or flats"
+    if count > 0:
+        word, notes = "sharp", SHARP_ORDER[:count]
+    else:
+        word, notes = "flat", FLAT_ORDER[:-count]
+    total = abs(count)
+    return f"{total} {word}{'s' if total > 1 else ''}: " + ", ".join(notes)
+
+
+def identify_key(midi_list):
+    """Which major or natural minor keys contain every one of these notes?"""
+    midi = sorted({int(m) for m in midi_list})
+    if not midi:
+        raise TheoryError("Play at least one note.")
+    counts = {}
+    for m in midi:
+        counts[m % 12] = counts.get(m % 12, 0) + 1
+    pcs = set(counts)
+    bass = midi[0] % 12
+
+    found = []
+    for mode, (label, formula) in SCALES.items():
+        for tonic in range(12):
+            scale = {(tonic + step) % 12 for step in formula}
+            if not pcs <= scale:
+                continue
+            major_pc = tonic if mode == "major" else (tonic + 3) % 12
+            major_name, accidentals = MAJOR_KEYS[major_pc]
+            tonic_name = major_name if mode == "major" else MINOR_NAMES[tonic]
+            relative = (
+                MINOR_NAMES[(tonic + 9) % 12] + " minor" if mode == "major"
+                else MAJOR_KEYS[major_pc][0] + " major"
+            )
+            score = 2 * counts.get(tonic, 0) + counts.get((tonic + 7) % 12, 0) + (2 if tonic == bass else 0)
+            found.append({
+                "name": f"{tonic_name} {mode}",
+                "signature": describe_signature(accidentals),
+                "relative": relative,
+                "accidentals": abs(accidentals),
+                "score": score,
+                "mode": mode,
+            })
+    found.sort(key=lambda k: (-k["score"], k["accidentals"], k["mode"] != "major"))
+    notes = []
+    for m in midi:
+        name = SHARP_NAMES[m % 12]
+        if name not in notes:
+            notes.append(name)
+    return {"notes": notes, "keys": found[:6]}

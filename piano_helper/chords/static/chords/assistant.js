@@ -15,7 +15,7 @@
 
   let currentMidi = [];
 
-  async function findChord() {
+  async function findChord(play = true) {
     const out = $("main-chord-result");
     try {
       const data = await K.api(chordUrl, {
@@ -25,7 +25,7 @@
       out.textContent = data.label + ": " + data.notes.join("  ");
       currentMidi = data.midi;
       keyboard.light(currentMidi);
-      K.playChord(currentMidi);
+      if (play !== false) K.playChord(currentMidi);
     } catch (error) {
       out.textContent = error.message;
       keyboard.light([]);
@@ -136,7 +136,8 @@
     K.playChord(picked);
   });
 
-  $("main-chord-find").addEventListener("click", findChord);
+  $("main-chord-find").addEventListener("click", () => findChord(true));
+  $("main-wheel").addEventListener("main-chord-pick", (e) => findChord(e.detail ? e.detail.play : true));
   $("main-chord-play").addEventListener("click", () => {
     if (currentMidi.length) {
       keyboard.light(currentMidi);

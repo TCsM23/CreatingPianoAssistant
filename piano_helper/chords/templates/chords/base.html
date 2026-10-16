@@ -50,6 +50,8 @@
          {% if request.resolver_match.url_name == 'notation' %}aria-current="page"{% endif %}>Notation</a>
       <a class="site-nav-link" href="{% url 'chords:songs' %}"
          {% if request.resolver_match.url_name == 'songs' %}aria-current="page"{% endif %}>Songs</a>
+      <a class="site-nav-link" href="{% url 'chords:studio' %}"
+         {% if request.resolver_match.url_name == 'studio' %}aria-current="page"{% endif %}>Studio</a>
       <a class="site-nav-link" href="{% url 'chords:about' %}"
          {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %}>About</a>
       <button type="button" class="site-theme-toggle" id="site-theme-toggle" aria-label="Switch to light mode" aria-pressed="false">
@@ -79,6 +81,7 @@
           <li><a href="{% url 'chords:practice' %}">Practice</a></li>
           <li><a href="{% url 'chords:notation' %}">Notation</a></li>
           <li><a href="{% url 'chords:songs' %}">Songs</a></li>
+          <li><a href="{% url 'chords:studio' %}">Studio</a></li>
         </ul>
       </nav>
 

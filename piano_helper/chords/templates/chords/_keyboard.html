@@ -1,46 +1,90 @@
 <div class="main-keyboard-wrap">
-  <div class="main-keyboard-bar">
-    <p class="main-keyboard-hint">Click a key, or hold the button and slide across the keys · C3 to C6</p>
-    <label class="main-keyboard-size-label">
-      <span>Sound</span>
-      <select id="main-keyboard-instrument" class="main-keyboard-size">
-        <option value="piano" selected>Grand Piano</option>
-        <option value="epiano">Electric Piano</option>
-        <option value="organ">Organ</option>
-        <option value="synth">Synthesizer</option>
-        <option value="harpsichord">Harpsichord</option>
-        <option value="musicbox">Music Box</option>
-      </select>
-    </label>
-    <div class="main-pedal" role="group" aria-label="Sustain pedal">
-      <span class="main-pedal-label">Pedal</span>
-      <button type="button" class="main-pedal-button" data-pedal="0" aria-pressed="true">Off</button>
-      <button type="button" class="main-pedal-button" data-pedal="0.5" aria-pressed="false">Half</button>
-      <button type="button" class="main-pedal-button" data-pedal="1" aria-pressed="false">Full</button>
-    </div>
-    <div class="main-midi" role="group" aria-label="MIDI keyboard">
-      <button type="button" id="main-midi-connect" class="main-transport-button">🎹 Connect MIDI</button>
-      <div class="main-midi-octave" id="main-midi-octave" hidden>
-        <button type="button" id="main-midi-octave-down" class="main-pedal-button" aria-label="Octave down">−</button>
-        <span id="main-midi-octave-label" class="main-pedal-label">Octave 0</span>
-        <button type="button" id="main-midi-octave-up" class="main-pedal-button" aria-label="Octave up">+</button>
+  <section class="main-hud" aria-label="Keyboard controls">
+    <p class="main-hud-hint">
+      Click a key, or hold the button and slide across the keys. The keyboard shows three octaves at a time.
+      Change octave with the arrows, or just play a note beyond the edge and it slides there.
+    </p>
+
+    <div class="main-hud-grid">
+      <div class="main-hud-group main-hud-group-sound">
+        <span class="main-hud-label">Sound</span>
+        <select id="main-keyboard-instrument" class="main-keyboard-size" aria-label="Sound">
+          <option value="piano" selected>Grand Piano</option>
+          <option value="epiano">Electric Piano</option>
+          <option value="organ">Organ</option>
+          <option value="synth">Synthesizer</option>
+          <option value="harpsichord">Harpsichord</option>
+          <option value="musicbox">Music Box</option>
+        </select>
       </div>
-      <p id="main-midi-status" class="main-midi-status" role="status" aria-live="polite"></p>
-    </div>
-    <div class="main-typing" role="group" aria-label="Computer keyboard">
-      <button type="button" id="main-typing-toggle" class="main-transport-button" aria-pressed="true">⌨ Typing keys: on</button>
-      <div class="main-typing-octave" id="main-typing-octave">
-        <button type="button" id="main-typing-octave-down" class="main-pedal-button" aria-label="Typing keys octave down">−</button>
-        <span id="main-typing-octave-label" class="main-pedal-label">Octave 0</span>
-        <button type="button" id="main-typing-octave-up" class="main-pedal-button" aria-label="Typing keys octave up">+</button>
+
+      <div class="main-hud-group main-hud-group-pedal">
+        <span class="main-hud-label">Sustain pedal</span>
+        <div class="main-pedal" role="group" aria-label="Sustain pedal">
+          <button type="button" class="main-pedal-button" data-pedal="0" aria-pressed="true">Off</button>
+          <button type="button" class="main-pedal-button" data-pedal="0.5" aria-pressed="false">Half</button>
+          <button type="button" class="main-pedal-button" data-pedal="1" aria-pressed="false">Full</button>
+        </div>
+      </div>
+
+      <div class="main-hud-group main-hud-group-octave">
+        <span class="main-hud-label">Octave</span>
+        <div class="main-octave" role="group" aria-label="Keyboard octave">
+          <button type="button" id="main-octave-down" class="main-pedal-button" aria-label="Octave down">◂</button>
+          <output id="main-octave-label" class="main-octave-label" aria-live="polite">C3 – C6</output>
+          <button type="button" id="main-octave-up" class="main-pedal-button" aria-label="Octave up">▸</button>
+        </div>
+      </div>
+
+      <div class="main-hud-group main-hud-group-midi">
+        <span class="main-hud-label">MIDI keyboard</span>
+        <div class="main-hud-row">
+          <button type="button" id="main-midi-connect" class="main-transport-button" aria-pressed="false">
+            🎹 Connect MIDI
+          </button>
+          <p id="main-midi-status" class="main-midi-status" role="status" aria-live="polite">Not connected</p>
+        </div>
+      </div>
+
+      <div class="main-hud-group main-hud-group-typing">
+        <span class="main-hud-label">Computer keys</span>
+        <button type="button" id="main-typing-toggle" class="main-transport-button" aria-pressed="true">
+          ⌨ Typing keys: on
+        </button>
+      </div>
+
+      <div class="main-hud-group main-hud-group-play">
+        <span class="main-hud-label">Playback</span>
+        <div class="main-transport" role="group" aria-label="Playback">
+          <button type="button" id="main-transport-pause" class="main-transport-button" disabled>❚❚ Pause</button>
+          <button type="button" id="main-transport-clear" class="main-transport-button">✕ Clear</button>
+          <button type="button" id="main-transport-stop" class="main-transport-button">■ Stop</button>
+        </div>
       </div>
     </div>
-    <div class="main-transport" role="group" aria-label="Playback">
-      <button type="button" id="main-transport-pause" class="main-transport-button" disabled>❚❚ Pause</button>
-      <button type="button" id="main-transport-clear" class="main-transport-button">✕ Clear keys</button>
-      <button type="button" id="main-transport-stop" class="main-transport-button">■ Stop</button>
-    </div>
-  </div>
+
+    <details class="main-hud-controllers" id="main-midi-controls">
+      <summary class="main-hud-controllers-summary">
+        <span class="main-hud-label">Controllers</span>
+        <span class="main-hud-controllers-note" id="main-midi-controls-note">connect a MIDI keyboard to see them</span>
+      </summary>
+      <div class="main-hud-controllers-body">
+        <p class="main-midi-controls-help">
+          Move a wheel, fader, knob or pad on your keyboard and it appears below.
+          Pick what each fader or knob controls.
+        </p>
+        <div class="main-midi-control-row">
+          <span class="main-midi-control-label">Pitch wheel</span>
+          <div class="main-midi-control-meter main-midi-control-meter-pitch">
+            <span class="main-midi-control-dot" id="main-midi-pitch-dot"></span>
+          </div>
+          <span class="main-midi-control-note">±2 semitones</span>
+        </div>
+        <div id="main-midi-controls-list"></div>
+      </div>
+    </details>
+  </section>
+
   <div class="main-keyboard-case">
     <div id="main-keyboard-keys" class="main-keyboard-keys"></div>
   </div>

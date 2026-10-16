@@ -6,7 +6,7 @@ from django.templatetags.static import static
 from django.views.decorators.http import require_GET
 
 from .theory import (
-    build_chord, build_scale, build_progression, identify_chord,
+    build_chord, build_scale, build_progression, identify_chord, identify_key,
     TheoryError, SHARP_NAMES, CHORD_QUALITIES,
 )
 
@@ -18,6 +18,7 @@ ABOUT_LINKS = {
     "facebook": "facebook.com/yvesjerico.repayo/",
     "youtube": "https://www.youtube.com/@tcsm0023",
     "github": "https://github.com/TCsM23",
+    "linkedin": "https://linkedin.com/in/yves-jerico-repayo-72a593444",
     "tip": "",        # your PayPal.me link
     "gcash_qr": True,  # set True after adding static/chords/support-qr.png
 }
@@ -62,9 +63,14 @@ def home(request):
 
 def assistant(request):
     qualities = [(key, label) for key, (symbol, label, formula) in CHORD_QUALITIES.items()]
+    chord_types = [
+        {"key": key, "symbol": symbol, "label": label, "formula": formula}
+        for key, (symbol, label, formula) in CHORD_QUALITIES.items()
+    ]
     return render(request, "chords/assistant.html", {
         "note_names": SHARP_NAMES,
         "qualities": qualities,
+        "chord_types": chord_types,
     })
 
 def learn(request):
@@ -100,6 +106,18 @@ def api_identify(request):
         return JsonResponse({"error": str(error)}, status=400)
 
 @require_GET
+def api_key(request):
+    try:
+        midi = [int(n) for n in request.GET.get("notes", "").split(",") if n.strip()]
+    except ValueError:
+        return JsonResponse({"error": "Notes must be numbers like 60,64,67"}, status=400)
+    try:
+        return JsonResponse(identify_key(midi))
+    except TheoryError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+
+
+@require_GET
 def api_scale(request):
     root = request.GET.get("root", "C")
     scale = request.GET.get("scale", "major")
@@ -133,6 +151,25 @@ def about(request):
         "links": ABOUT_LINKS,
         "emailjs": ABOUT_EMAILJS,
         "chord_rows": chord_rows,
+    })
+
+
+STUDIO_TRACKS = [
+    {"id": "kick", "name": "Kick"},
+    {"id": "snare", "name": "Snare"},
+    {"id": "clap", "name": "Clap"},
+    {"id": "hat", "name": "Hi-hat"},
+    {"id": "open", "name": "Open hat"},
+    {"id": "tom", "name": "Tom"},
+    {"id": "rim", "name": "Rim"},
+    {"id": "cow", "name": "Cowbell"},
+]
+
+
+def studio(request):
+    return render(request, "chords/studio.html", {
+        "tracks": STUDIO_TRACKS,
+        "steps": range(16),
     })
 
 

@@ -9,9 +9,6 @@
   const toggle = $("main-typing-toggle");
   if (!toggle || !K) return;
 
-  const octaveBox = $("main-typing-octave");
-  const octaveLabel = $("main-typing-octave-label");
-
   // key code -> semitones above the lowest key. The upper row is listed first so it wins
   // the label where the two rows overlap. Codes are physical keys, so other layouts work too.
   const KEYS = {
@@ -22,10 +19,13 @@
     KeyH: 8, KeyN: 9, KeyJ: 10, KeyM: 11, Comma: 12, KeyL: 13, Period: 14, Semicolon: 15, Slash: 16,
   };
   const SYMBOLS = { Comma: ",", Period: ".", Semicolon: ";", Slash: "/", BracketLeft: "[", BracketRight: "]", Equal: "=" };
-  const BASE = 48; // C3, the lowest key on the screen
+  // The lower row starts on the first C of the three octaves on screen, so the letters always match the keys.
+  function base() {
+    const board = K.getBoard();
+    return board ? board.getRange().start : 48;
+  }
 
   let on = true;
-  let shift = 0; // semitones, a multiple of 12
   const held = new Map(); // key code -> the note it started
 
   try {
@@ -45,7 +45,7 @@
     if (!on) return;
     const names = {};
     Object.keys(KEYS).forEach((code) => {
-      const midi = BASE + shift + KEYS[code];
+      const midi = base() + KEYS[code];
       if (!names[midi]) names[midi] = labelFor(code);
     });
     keys.forEach((key) => {
@@ -67,9 +67,6 @@
   function draw() {
     toggle.setAttribute("aria-pressed", String(on));
     toggle.textContent = "⌨ Typing keys: " + (on ? "on" : "off");
-    octaveBox.hidden = !on;
-    const octave = shift / 12;
-    octaveLabel.textContent = "Octave " + (octave > 0 ? "+" : "") + octave;
     drawLabels();
   }
 
@@ -85,7 +82,7 @@
     if (!board) return;
     event.preventDefault(); // stops "/" opening quick find in some browsers
     if (held.has(event.code)) return;
-    const note = BASE + shift + KEYS[event.code];
+    const note = base() + KEYS[event.code];
     held.set(event.code, note);
     board.down(note);
   });
@@ -110,22 +107,16 @@
     draw();
   });
 
-  function moveOctave(step) {
-    releaseAll();
-    shift = Math.max(-24, Math.min(24, shift + step * 12));
-    draw();
-  }
-
-  $("main-typing-octave-down").addEventListener("click", (event) => {
-    moveOctave(-1);
-    event.currentTarget.blur();
-  });
-  $("main-typing-octave-up").addEventListener("click", (event) => {
-    moveOctave(1);
-    event.currentTarget.blur();
-  });
-
   draw();
-  if (document.readyState === "complete") drawLabels();
-  else window.addEventListener("load", drawLabels); // the keys are built by the page's own script
+  // the page's own script builds the keys; when they slide to another octave the letters follow
+  function watchOctave() {
+    const board = K.getBoard();
+    if (!board) return;
+    board.onRange(() => {
+      releaseAll();
+      drawLabels();
+    });
+  }
+  if (document.readyState === "complete") watchOctave();
+  else window.addEventListener("load", watchOctave);
 })();

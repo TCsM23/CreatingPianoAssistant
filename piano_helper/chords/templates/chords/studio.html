@@ -1,0 +1,188 @@
+{% extends "chords/base.html" %}
+{% load static %}
+
+{% block title %}Studio · TCsMusic{% endblock %}
+
+{% block content %}
+  {{ tracks|json_script:"studio-tracks-data" }}
+  <div class="studio-top-grid">
+    <h1 class="studio-page-title">Studio</h1>
+    <p class="studio-page-intro">
+      A small music workstation. Build a drum pattern, write a melody on the piano roll, balance
+      everything on the mixer and download your loop as a WAV. Every sound is made live in your
+      browser, and your work is remembered here.
+    </p>
+  </div>
+
+  <section class="studio-card studio-transport-card">
+    <div class="studio-transport-row">
+      <button type="button" class="studio-play-button" id="studio-play" data-target="play">▶ Play</button>
+      <button type="button" class="studio-stop-button" id="studio-stop" data-target="stop">■ Stop</button>
+      <button type="button" class="studio-record-button" id="studio-record" data-target="record" aria-pressed="false">● Record</button>
+
+      <label class="studio-bpm-label" for="studio-bpm">
+        <span>Tempo · <output id="studio-bpm-value" for="studio-bpm">100</output> BPM</span>
+        <input type="range" id="studio-bpm" min="60" max="180" value="100" data-target="tempo">
+      </label>
+
+      <label class="studio-preset-label" for="studio-bars">
+        <span>Loop</span>
+        <select id="studio-bars" data-target="loop">
+          <option value="1">1 bar</option>
+          <option value="2">2 bars</option>
+          <option value="4">4 bars</option>
+          <option value="8">8 bars</option>
+          <option value="16">16 bars</option>
+        </select>
+      </label>
+
+      <label class="studio-preset-label" for="studio-preset">
+        <span>Start from</span>
+        <select id="studio-preset">
+          <option value="">Choose…</option>
+          <option value="four">Four on the floor</option>
+          <option value="boom">Boom bap</option>
+          <option value="half">Half-time</option>
+        </select>
+      </label>
+
+      <button type="button" class="studio-clear-button" id="studio-clear">Clear all</button>
+      <button type="button" class="studio-export-button" id="studio-export">⬇ Export WAV</button>
+    </div>
+    <p class="studio-export-note" id="studio-export-note" role="status" aria-live="polite"></p>
+  </section>
+
+  <div class="studio-tabs" role="tablist" aria-label="Studio views">
+    <button type="button" class="studio-tab" role="tab" data-tab="seq" aria-selected="true">Sequencer</button>
+    <button type="button" class="studio-tab" role="tab" data-tab="roll" aria-selected="false">Piano roll</button>
+    <button type="button" class="studio-tab" role="tab" data-tab="mix" aria-selected="false">Mixer</button>
+  </div>
+
+  <section class="studio-card studio-panel" id="studio-panel-seq" role="tabpanel">
+    <div class="studio-grid" id="studio-grid">
+      {% for track in tracks %}
+        <div class="studio-grid-row">
+          <button type="button" class="studio-grid-mute" data-track="{{ track.id }}"
+                  aria-pressed="false" title="Mute {{ track.name }}">{{ track.name }}</button>
+          <div class="studio-grid-steps">
+            {% for i in steps %}
+              <button type="button" class="studio-grid-step" data-track="{{ track.id }}"
+                      data-step="{{ i }}" aria-pressed="false"
+                      aria-label="{{ track.name }} step {{ forloop.counter }}"></button>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <p class="studio-grid-hint">
+      One row per sound, sixteen steps per bar. Click a name to mute that row.
+      Hit Record and tap the pads to play beats in live.
+    </p>
+  </section>
+
+  <section class="studio-card studio-panel" id="studio-panel-roll" role="tabpanel" hidden>
+    <div class="studio-roll-bar">
+      <label class="studio-preset-label"><span>Snap</span>
+        <select id="studio-snap">
+          <option value="1">1/16</option>
+          <option value="2" selected>1/8</option>
+          <option value="4">1/4</option>
+        </select>
+      </label>
+      <button type="button" id="studio-roll-down" class="studio-small-button" aria-label="Roll lower">▾ Lower</button>
+      <output id="studio-roll-range" class="studio-roll-range">C3 – B5</output>
+      <button type="button" id="studio-roll-up" class="studio-small-button" aria-label="Roll higher">▴ Higher</button>
+      <button type="button" id="studio-roll-clear" class="studio-small-button">Clear notes</button>
+      <span class="studio-roll-help">Click to add · drag to move · drag the right edge to stretch · right-click to delete</span>
+    </div>
+    <div class="studio-roll-scroll" id="studio-roll-scroll">
+      <canvas id="studio-roll" class="studio-roll" aria-label="Piano roll"></canvas>
+    </div>
+  </section>
+
+  <section class="studio-card studio-panel" id="studio-panel-mix" role="tabpanel" hidden>
+    <div class="studio-mixer" id="studio-mixer"></div>
+    <p class="studio-grid-hint">
+      Each channel has a volume fader, a pan knob, mute (M) and solo (S). The meter moves with the sound.
+    </p>
+  </section>
+
+  <section class="studio-card studio-pads-card" id="studio-pads-card">
+    <h2 class="studio-section-title">Pads</h2>
+    <p class="studio-grid-hint">Tap a pad with the mouse, or hit a pad on your keyboard. With Record on, hits land in the sequencer.</p>
+    <div class="studio-pads" id="studio-pads"></div>
+  </section>
+
+  <section class="studio-card studio-keys-card">
+    <h2 class="studio-section-title">Keys</h2>
+    <div class="studio-keys-bar">
+      <label class="studio-preset-label"><span>Sound</span>
+        <select id="main-keyboard-instrument">
+          <option value="piano" selected>Grand Piano</option>
+          <option value="epiano">Electric Piano</option>
+          <option value="organ">Organ</option>
+          <option value="synth">Synthesizer</option>
+          <option value="harpsichord">Harpsichord</option>
+          <option value="musicbox">Music Box</option>
+        </select>
+      </label>
+      <div class="main-octave" role="group" aria-label="Keyboard octave">
+        <button type="button" id="main-octave-down" class="main-pedal-button" aria-label="Octave down" data-target="octave-down">◂</button>
+        <output id="main-octave-label" class="main-octave-label" aria-live="polite">C3 – C6</output>
+        <button type="button" id="main-octave-up" class="main-pedal-button" aria-label="Octave up" data-target="octave-up">▸</button>
+      </div>
+      <div class="main-pedal" role="group" aria-label="Sustain pedal">
+        <button type="button" class="main-pedal-button" data-pedal="0" aria-pressed="true">Off</button>
+        <button type="button" class="main-pedal-button" data-pedal="0.5" aria-pressed="false">Half</button>
+        <button type="button" class="main-pedal-button" data-pedal="1" aria-pressed="false">Full</button>
+      </div>
+    </div>
+    <div class="main-keyboard-wrap">
+      <div class="main-keyboard-case"><div id="main-keyboard-keys" class="main-keyboard-keys"></div></div>
+    </div>
+  </section>
+
+  <section class="studio-card studio-midi-card" id="studio-midi">
+    <div class="studio-midi-head">
+      <h2 class="studio-section-title">MIDI controller</h2>
+      <button type="button" id="studio-midi-connect" class="main-transport-button" aria-pressed="false">🎹 Connect MIDI</button>
+      <p id="studio-midi-status" class="studio-midi-status" role="status" aria-live="polite">Not connected</p>
+    </div>
+    <p class="studio-grid-hint">
+      Made for the M-Vave SMK-37 Pro, and works with any controller. Keys, pitch wheel, mod wheel and sustain work
+      straight away. Pads on channel 10 play the pads above. To wire any knob, fader, pad or button to anything
+      on this page, press <strong>Learn</strong>, click a control on the page, then move the one on your keyboard.
+      Or just touch a control and pick what it does from its list below.
+    </p>
+    <div class="studio-midi-tools">
+      <button type="button" id="studio-learn" class="main-transport-button" aria-pressed="false">🎯 Learn: off</button>
+      <button type="button" id="studio-midi-reset" class="main-transport-button">Reset mappings</button>
+      <p id="studio-learn-note" class="studio-learn-note" role="status" aria-live="polite"></p>
+    </div>
+    <div class="studio-midi-grid">
+      <div>
+        <h3 class="studio-midi-sub">Wheels</h3>
+        <div class="main-midi-control-row">
+          <span class="main-midi-control-label">Pitch wheel</span>
+          <div class="main-midi-control-meter main-midi-control-meter-pitch"><span class="main-midi-control-dot" id="studio-pitch-dot"></span></div>
+        </div>
+        <div class="main-midi-control-row">
+          <span class="main-midi-control-label">Mod wheel</span>
+          <div class="main-midi-control-meter"><span class="main-midi-control-fill" id="studio-mod-fill"></span></div>
+        </div>
+        <h3 class="studio-midi-sub">Last message</h3>
+        <p id="studio-midi-last" class="studio-midi-last">nothing yet</p>
+      </div>
+      <div>
+        <h3 class="studio-midi-sub">Controls it has sent</h3>
+        <div id="studio-midi-seen" class="studio-midi-seen"><p class="studio-midi-empty">Move or press something on your keyboard.</p></div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'chords/piano-core.js' %}"></script>
+  <script src="{% static 'chords/midihub.js' %}"></script>
+  <script src="{% static 'chords/studio.js' %}"></script>
+{% endblock %}

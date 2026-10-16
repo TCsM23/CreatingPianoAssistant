@@ -50,7 +50,7 @@
         <div><dt>Clear keys</dt><dd>Remove every highlight at once</dd></div>
         <div><dt>Sun / moon icon</dt><dd>Switch between dark and light mode</dd></div>
       </dl>
-      <p class="about-text">The keyboard spans C3 to C6, 37 keys.</p>
+      <p class="about-text">The keyboard spans C1 to C7, 73 keys, and scrolls to follow the notes you play.</p>
 
       <h3 class="about-sub">Chord formulas</h3>
       <p class="about-text">Steps are semitones above the root. Examples are built on C.</p>
@@ -113,11 +113,12 @@
 
         <div class="about-channels">
           <h3 class="about-sub about-sub-first">Direct channels</h3>
-          {% if links.email or links.facebook or links.github or links.youtube %}
+          {% if links.email or links.facebook or links.github or links.youtube or links.linkedin %}
             <ul class="about-links">
               {% if links.email %}<li><a href="mailto:{{ links.email }}">{{ links.email }}</a></li>{% endif %}
               {% if links.facebook %}<li><a href="{{ links.facebook }}" target="_blank" rel="noopener">Facebook</a></li>{% endif %}
               {% if links.github %}<li><a href="{{ links.github }}" target="_blank" rel="noopener">GitHub</a></li>{% endif %}
+              {% if links.linkedin %}<li><a href="{{ links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a></li>{% endif %}
               {% if links.youtube %}<li><a href="{{ links.youtube }}" target="_blank" rel="noopener">YouTube</a></li>{% endif %}
             </ul>
           {% else %}
