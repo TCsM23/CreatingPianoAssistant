@@ -24,9 +24,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# On your computer this stays True. On Render (or any host) set the DJANGO_DEBUG variable to "0".
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS = []
+# Render tells us its address in RENDER_EXTERNAL_HOSTNAME. Extra hosts can go in DJANGO_ALLOWED_HOSTS,
+# separated by commas.
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "tcsm.pythonanywhere.com"]
+if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+ALLOWED_HOSTS += [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = ["https://" + h for h in ALLOWED_HOSTS if "." in h and h[0].isalpha()]
 
 
 # Application definition
@@ -41,8 +48,16 @@ INSTALLED_APPS = [
     'chords',
 ]
 
+# WhiteNoise serves the CSS and JS on Render. It is optional, so the site still runs without it.
+try:
+    import whitenoise  # noqa: F401
+    WHITENOISE = True
+except ImportError:
+    WHITENOISE = False
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    *(['whitenoise.middleware.WhiteNoiseMiddleware'] if WHITENOISE else []),
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -117,6 +132,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+if WHITENOISE:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    }
 
 
 # Email

@@ -8,12 +8,13 @@
     <div class="about-top-intro">
       <h1 class="about-page-title">About</h1>
       <p class="about-page-intro">
-        What TCsMusic is, a quick reference for the keyboard and chords,
-        how to reach me, and how to support the project.
+        What TCsMusic is, a quick reference for the keyboard, the Studio and your MIDI controller,
+        the chords, how to reach me, and how to support the project.
       </p>
     </div>
     <nav class="about-jump" aria-label="On this page">
       <a href="#about">About</a>
+      <a href="#studio">Studio &amp; MIDI</a>
       <a href="#reference">Reference</a>
       <a href="#contact">Contact</a>
       <a href="#support">Support me</a>
@@ -30,11 +31,35 @@
         and progressions are sentences.
       </p>
       <ul class="about-list">
-        <li><a href="{% url 'chords:assistant' %}">Assistant</a> builds any chord, scale or progression and lights it on the keyboard.</li>
+        <li><a href="{% url 'chords:assistant' %}">Assistant</a> has a chord wheel that shows which chords go together, 25 chord types with a chart, scales, progressions and a live detector that names the chord you hold.</li>
         <li><a href="{% url 'chords:learn' %}">Learn</a> teaches the method: letters, words, sentences.</li>
         <li><a href="{% url 'chords:practice' %}">Practice</a> trains your ear and your timing.</li>
         <li><a href="{% url 'chords:notation' %}">Notation</a> explains note values, dynamics, tempo and key signatures.</li>
+        <li><a href="{% url 'chords:songs' %}">Songs</a> plays pieces on the keys, loads your MIDI files and records you.</li>
+        <li><a href="{% url 'chords:studio' %}">Studio</a> is a small workstation: drum sequencer, piano roll, mixer and WAV export.</li>
       </ul>
+    </section>
+
+    <section class="about-card about-wide" id="studio">
+      <h2 class="about-heading">Studio &amp; MIDI controller</h2>
+      <p class="about-text">
+        The <a href="{% url 'chords:studio' %}">Studio</a> has three views. The <strong>Sequencer</strong> is an 8-row drum grid
+        (kick, snare, clap, hi-hat, open hat, tom, rim, cowbell). The <strong>Piano roll</strong> is where you write melodies,
+        for loops of 1 to 16 bars. The <strong>Mixer</strong> gives every channel a volume fader, pan, mute, solo and a level meter.
+        Press <strong>Export WAV</strong> to download your loop as an audio file. Your work is saved in this browser.
+      </p>
+      <h3 class="about-sub">Using a MIDI controller (made for the M-Vave SMK-37 Pro)</h3>
+      <dl class="about-keys">
+        <div><dt>Connect MIDI</dt><dd>Use Chrome, Edge or Opera and allow MIDI access when asked</dd></div>
+        <div><dt>Keys</dt><dd>Play the keyboard. It follows your notes, and the pitch wheel, mod wheel and sustain pedal work straight away</dd></div>
+        <div><dt>Pads</dt><dd>Pads on MIDI channel 10 play the 16 on-screen pads. With Record on, your hits go into the sequencer</dd></div>
+        <div><dt>Learn</dt><dd>Press Learn, click any control on the page, then move a knob, fader, pad or button on your keyboard to link them</dd></div>
+        <div><dt>Record</dt><dd>Record keys into the piano roll and pads into the sequencer while the loop plays</dd></div>
+      </dl>
+      <p class="about-text">
+        You can link any knob, fader or button to play and stop, record, tempo, loop length, octave, master volume,
+        and each channel's volume, pan, mute and solo. Your links are remembered.
+      </p>
     </section>
 
     <section class="about-card about-wide" id="reference">
@@ -46,11 +71,14 @@
         <div><dt><kbd>Shift</kbd></dt><dd>Half pedal while held</dd></div>
         <div><dt>Click a key</dt><dd>Play it, click a lit key again to unlight it</dd></div>
         <div><dt>Drag across keys</dt><dd>Glissando with the mouse or your finger</dd></div>
+        <div><dt>Octave arrows</dt><dd>Slide the keyboard to another octave. Each C is labelled (C3, C4, C5…)</dd></div>
+        <div><dt>Typing keys</dt><dd>Play the keyboard from your computer keys. Press them to hear notes, switch them off with the Typing keys button</dd></div>
+        <div><dt>Chord wheel</dt><dd>Click a chord to see its neighbours. Switch between chord relationships and scale degrees</dd></div>
         <div><dt>Sound</dt><dd>Switch between piano, e-piano, organ, synth, harpsichord and music box</dd></div>
         <div><dt>Clear keys</dt><dd>Remove every highlight at once</dd></div>
         <div><dt>Sun / moon icon</dt><dd>Switch between dark and light mode</dd></div>
       </dl>
-      <p class="about-text">The keyboard spans C1 to C7, 73 keys, and scrolls to follow the notes you play.</p>
+      <p class="about-text">The keyboard shows three octaves at a time and slides along all 88 keys of a piano, A0 to C8. Play a note beyond the edge and it slides there for you.</p>
 
       <h3 class="about-sub">Chord formulas</h3>
       <p class="about-text">Steps are semitones above the root. Examples are built on C.</p>

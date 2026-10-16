@@ -53,7 +53,7 @@
         <span class="home-programme-number">01</span>
         <h3 class="home-programme-title">Practise at the keyboard</h3>
         <p class="home-programme-text">
-          Pick any chord, scale or progression, then see it light up and hear it played. Repeat until your hands know it.
+          Spin the chord wheel or pick any chord, scale or progression, then see it light up and hear it played. Repeat until your hands know it.
         </p>
         <a class="home-programme-link" href="{% url 'chords:assistant' %}">Open the assistant →</a>
       </li>
@@ -82,7 +82,7 @@
       <li><a class="home-library-tile" href="{% url 'chords:assistant' %}">
         <span class="home-library-glyph">♪</span>
         <span class="home-library-name">Assistant</span>
-        <span class="home-library-text">Chords, scales and progressions on a keyboard.</span>
+        <span class="home-library-text">A chord wheel, 25 chord types, scales and progressions on a keyboard.</span>
       </a></li>
       <li><a class="home-library-tile" href="{% url 'chords:learn' %}">
         <span class="home-library-glyph">♫</span>
@@ -99,6 +99,16 @@
         <span class="home-library-name">Notation</span>
         <span class="home-library-text">Note values, dynamics, tempo and key signatures.</span>
       </a></li>
+      <li><a class="home-library-tile" href="{% url 'chords:songs' %}">
+        <span class="home-library-glyph">♬</span>
+        <span class="home-library-name">Songs</span>
+        <span class="home-library-text">Watch pieces play on the keys, or load and record your own.</span>
+      </a></li>
+      <li><a class="home-library-tile" href="{% url 'chords:studio' %}">
+        <span class="home-library-glyph">▦</span>
+        <span class="home-library-name">Studio</span>
+        <span class="home-library-text">Drum sequencer, piano roll, mixer and WAV export, with MIDI controller support.</span>
+      </a></li>
     </ul>
   </section>
 
@@ -107,6 +117,7 @@
     <div class="home-closing-actions">
       <a class="home-hero-button" href="{% url 'chords:assistant' %}">Start playing</a>
       <a class="home-hero-button home-hero-outline" href="{% url 'chords:learn' %}">Learn the method</a>
+      <a class="home-hero-button home-hero-outline" href="{% url 'chords:studio' %}">Make a beat</a>
     </div>
   </section>
 {% endblock %}

@@ -850,7 +850,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (min-width: 1025px) {
   .home-hero-section { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
   .home-programme-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .home-library-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .home-library-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* ---------- assistant ---------- */
