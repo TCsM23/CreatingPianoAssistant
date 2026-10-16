@@ -1,0 +1,217 @@
+{% extends "chords/base.html" %}
+{% load static %}
+
+{% block title %}About · TCsMusic{% endblock %}
+
+{% block content %}
+  <div class="about-top-grid">
+    <div class="about-top-intro">
+      <h1 class="about-page-title">About</h1>
+      <p class="about-page-intro">
+        What TCsMusic is, a quick reference for the keyboard, the Studio and your MIDI controller,
+        the chords, how to reach me, and how to support the project.
+      </p>
+    </div>
+    <nav class="about-jump" aria-label="On this page">
+      <a href="#about">About</a>
+      <a href="#studio">Studio &amp; MIDI</a>
+      <a href="#reference">Reference</a>
+      <a href="#contact">Contact</a>
+      <a href="#support">Support me</a>
+    </nav>
+  </div>
+
+  <div class="about-grid">
+    <section class="about-card about-wide" id="about">
+      <h2 class="about-heading">About TCsMusic</h2>
+      <p class="about-text">
+        TCsMusic is a piano assistant for self-taught players who want to know
+        <em>why</em> a chord works, not just where to put their fingers.
+        It treats music like a language: notes are letters, chords are words,
+        and progressions are sentences.
+      </p>
+      <ul class="about-list">
+        <li><a href="{% url 'chords:assistant' %}">Assistant</a> has a chord wheel that shows which chords go together, 25 chord types with a chart, scales, progressions and a live detector that names the chord you hold.</li>
+        <li><a href="{% url 'chords:learn' %}">Learn</a> teaches the method: letters, words, sentences.</li>
+        <li><a href="{% url 'chords:practice' %}">Practice</a> trains your ear and your timing.</li>
+        <li><a href="{% url 'chords:notation' %}">Notation</a> explains note values, dynamics, tempo and key signatures.</li>
+        <li><a href="{% url 'chords:songs' %}">Songs</a> plays pieces on the keys, loads your MIDI files and records you.</li>
+        <li><a href="{% url 'chords:studio' %}">Studio</a> is a small workstation: drum sequencer, piano roll, mixer, sound effects and WAV export.</li>
+      </ul>
+    </section>
+
+    <section class="about-card about-wide" id="studio">
+      <h2 class="about-heading">Studio &amp; MIDI controller</h2>
+      <p class="about-text">
+        The <a href="{% url 'chords:studio' %}">Studio</a> has three views. The <strong>Sequencer</strong> is an 8-row drum grid
+        (kick, snare, clap, hi-hat, open hat, tom, rim, cowbell). The <strong>Piano roll</strong> is where you write melodies,
+        for loops of 1 to 16 bars. The <strong>Mixer</strong> gives every channel a volume fader, pan, mute, solo and a level meter.
+        Press <strong>Export WAV</strong> to download your loop as an audio file. Your work is saved in this browser.
+      </p>
+      <p class="about-text">
+        Click a note on the roll to edit it: its sound, volume, a <strong>Slide</strong> that bends the pitch across the note,
+        and fade in and out. Besides the piano sounds there are a Church Organ, Choir, Strings, Bells, Harp, chip sounds and a
+        Dark Drone, plus a Pure Sine, a Noise Sweep and a Gong for building sound effects. Tick <strong>Sound-effect mode</strong>
+        and the drums play once, and Export WAV saves a single take with the silence trimmed and the loudness matched.
+        Pick a key and scale in the roll's toolbar to shade it on the roll. The tempo goes up to 300 BPM.
+      </p>
+      <h3 class="about-sub">Studio keyboard shortcuts</h3>
+      <p class="about-text">Press <kbd>?</kbd> on the Studio page to show or hide this list there.</p>
+      <div class="about-table-wrap">
+        <table class="about-table">
+          <thead>
+            <tr><th scope="col">Key</th><th scope="col">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><kbd>Space</kbd></th><td>Play / pause. Play then reads “Resume” and continues from the same step.</td></tr>
+            <tr><th scope="row"><kbd>Esc</kbd></th><td>Stop and go back to the start</td></tr>
+            <tr><th scope="row"><kbd>Enter</kbd></th><td>Play again from the start</td></tr>
+            <tr><th scope="row"><kbd>R</kbd></th><td>Record on / off</td></tr>
+            <tr><th scope="row"><kbd>[</kbd> <kbd>]</kbd></th><td>Tempo −1 / +1 (hold <kbd>Shift</kbd> for 10)</td></tr>
+            <tr><th scope="row"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></th><td>Sequencer / Piano roll / Mixer</td></tr>
+            <tr><th scope="row"><kbd>E</kbd></th><td>Export WAV</td></tr>
+            <tr><th scope="row"><kbd>PgUp</kbd> <kbd>PgDn</kbd></th><td>Piano roll up / down an octave</td></tr>
+            <tr><th scope="row"><kbd>↑</kbd> <kbd>↓</kbd></th><td>Move the selected note a semitone (<kbd>Shift</kbd>: octave)</td></tr>
+            <tr><th scope="row"><kbd>←</kbd> <kbd>→</kbd></th><td>Move the selected note by the snap (<kbd>Shift</kbd>: one step)</td></tr>
+            <tr><th scope="row"><kbd>D</kbd></th><td>Duplicate the selected note after itself</td></tr>
+            <tr><th scope="row"><kbd>H</kbd></th><td>Hear the selected note</td></tr>
+            <tr><th scope="row"><kbd>Del</kbd></th><td>Delete the selected note</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 class="about-sub">Using a MIDI controller (made for the M-Vave SMK-37 Pro)</h3>
+      <dl class="about-keys">
+        <div><dt>Connect MIDI</dt><dd>Use Chrome, Edge or Opera and allow MIDI access when asked</dd></div>
+        <div><dt>Keys</dt><dd>Play the keyboard. It follows your notes, and the pitch wheel, mod wheel and sustain pedal work straight away</dd></div>
+        <div><dt>Pads</dt><dd>Pads on MIDI channel 10 play the 16 on-screen pads. With Record on, your hits go into the sequencer</dd></div>
+        <div><dt>Learn</dt><dd>Press Learn, click any control on the page, then move a knob, fader, pad or button on your keyboard to link them</dd></div>
+        <div><dt>Record</dt><dd>Record keys into the piano roll and pads into the sequencer while the loop plays</dd></div>
+      </dl>
+      <p class="about-text">
+        You can link any knob, fader or button to play and stop, record, tempo, loop length, octave, master volume,
+        and each channel's volume, pan, mute and solo. Your links are remembered.
+      </p>
+    </section>
+
+    <section class="about-card about-wide" id="reference">
+      <h2 class="about-heading">Reference</h2>
+
+      <h3 class="about-sub">Keyboard and controls</h3>
+      <dl class="about-keys">
+        <div><dt><kbd>Space</kbd></dt><dd>Full sustain pedal while held. On the Studio page it plays and pauses instead</dd></div>
+        <div><dt><kbd>Shift</kbd></dt><dd>Half pedal while held</dd></div>
+        <div><dt>Click a key</dt><dd>Play it, click a lit key again to unlight it</dd></div>
+        <div><dt>Drag across keys</dt><dd>Glissando with the mouse or your finger</dd></div>
+        <div><dt>Octave arrows</dt><dd>Slide the keyboard to another octave. Each C is labelled (C3, C4, C5…)</dd></div>
+        <div><dt>Typing keys</dt><dd>Play the keyboard from your computer keys. Press them to hear notes, switch them off with the Typing keys button</dd></div>
+        <div><dt>Chord wheel</dt><dd>Click a chord to see its neighbours. Switch between chord relationships and scale degrees</dd></div>
+        <div><dt>Sound</dt><dd>Switch between piano, e-piano, organ, synth, harpsichord, music box, church organ, choir, strings, bells, harp, chip sounds and more</dd></div>
+        <div><dt>Clear keys</dt><dd>Remove every highlight at once</dd></div>
+        <div><dt>Sun / moon icon</dt><dd>Switch between dark and light mode</dd></div>
+      </dl>
+      <p class="about-text">The keyboard shows three octaves at a time and slides along all 88 keys of a piano, A0 to C8. Play a note beyond the edge and it slides there for you.</p>
+
+      <h3 class="about-sub">Chord formulas</h3>
+      <p class="about-text">Steps are semitones above the root. Examples are built on C.</p>
+      <div class="about-table-wrap">
+        <table class="about-table">
+          <thead>
+            <tr><th scope="col">Chord</th><th scope="col">Symbol</th><th scope="col">Steps</th><th scope="col">Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for row in chord_rows %}
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                <td>{{ row.symbol }}</td>
+                <td>{{ row.steps }}</td>
+                <td>{{ row.notes }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="about-sub">Words worth knowing</h3>
+      <dl class="about-glossary">
+        <div><dt>Semitone</dt><dd>The distance between two neighbouring keys, black or white.</dd></div>
+        <div><dt>Root</dt><dd>The note a chord or scale is named after.</dd></div>
+        <div><dt>Triad</dt><dd>A three-note chord: root, third and fifth.</dd></div>
+        <div><dt>Progression</dt><dd>A sequence of chords, the “sentence” of a song.</dd></div>
+        <div><dt>Sustain</dt><dd>Letting notes keep ringing after you lift your fingers.</dd></div>
+      </dl>
+
+      <h3 class="about-sub">Credits</h3>
+      <p class="about-text">
+        Built with Django. Typefaces: Open Sauce, DM Sans and Noto Music.
+      </p>
+    </section>
+
+    <section class="about-card about-wide" id="contact">
+      <h2 class="about-heading">Contact</h2>
+      <div class="about-contact-grid">
+        {% if emailjs.service and emailjs.template and emailjs.key %}
+          <form class="about-form" id="about-form" novalidate
+                data-service="{{ emailjs.service }}" data-template="{{ emailjs.template }}" data-key="{{ emailjs.key }}">
+            <input type="hidden" name="title" value="New message from TCsMusic">
+            <div class="about-field">
+              <label for="about-name">Name</label>
+              <input type="text" id="about-name" name="name" placeholder="Your name" autocomplete="name" required>
+            </div>
+            <div class="about-field">
+              <label for="about-email">Email</label>
+              <input type="email" id="about-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <div class="about-field">
+              <label for="about-message">Message</label>
+              <textarea id="about-message" name="message" rows="5" placeholder="Reporting a bug? Say which page, what you pressed, and what you expected." required></textarea>
+            </div>
+            <button type="submit" class="about-submit" id="about-submit">Send message</button>
+            <p class="about-status" id="about-status" role="status" aria-live="polite"></p>
+          </form>
+        {% endif %}
+
+        <div class="about-channels">
+          <h3 class="about-sub about-sub-first">Direct channels</h3>
+          {% if links.email or links.facebook or links.github or links.youtube or links.linkedin %}
+            <ul class="about-links">
+              {% if links.email %}<li><a href="mailto:{{ links.email }}">{{ links.email }}</a></li>{% endif %}
+              {% if links.facebook %}<li><a href="{{ links.facebook }}" target="_blank" rel="noopener">Facebook</a></li>{% endif %}
+              {% if links.github %}<li><a href="{{ links.github }}" target="_blank" rel="noopener">GitHub</a></li>{% endif %}
+              {% if links.linkedin %}<li><a href="{{ links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a></li>{% endif %}
+              {% if links.youtube %}<li><a href="{{ links.youtube }}" target="_blank" rel="noopener">YouTube</a></li>{% endif %}
+            </ul>
+          {% else %}
+            <p class="about-text">Contact details are coming soon.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="about-card about-wide" id="support">
+      <h2 class="about-heading">Support me</h2>
+      <p class="about-text">
+        TCsMusic is free and has no ads. The best support is free too:
+        share it with another piano player, and tell me what to teach next.
+      </p>
+      <div class="about-actions">
+        {% if links.tip %}
+          <a class="about-button" href="{{ links.tip }}" target="_blank" rel="noopener">Tip via PayPal</a>
+        {% endif %}
+        {% if links.gcash_qr %}
+          <details class="about-qr">
+            <summary class="about-button about-button-ghost">Tip via GCash</summary>
+            <img src="{% static 'chords/support-qr.png' %}" alt="GCash QR code" width="220" height="220">
+            <p class="about-text">Scan with GCash or any QR Ph app.</p>
+          </details>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {% if emailjs.service and emailjs.template and emailjs.key %}
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="{% static 'chords/about.js' %}"></script>
+  {% endif %}
+{% endblock %}
