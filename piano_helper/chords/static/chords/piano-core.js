@@ -116,6 +116,24 @@ window.PianoKit = (function () {
     synth:    { name: "Synthesizer", partials: [["sawtooth", 1, 0.5], ["sawtooth", 1.006, 0.5], ["square", 0.5, 0.3]], attack: 0.04, sustain: 0.7, cutoff: 2400, trim: 1.2 },
     harpsichord: { name: "Harpsichord", partials: [["sawtooth", 1, 0.45], ["square", 2, 0.2], ["triangle", 4, 0.15]], attack: 0.004, life: 1.3, cutoff: 5000, trim: 8 },
     musicbox: { name: "Music Box", partials: [["sine", 1, 1], ["sine", 2.76, 0.28], ["sine", 5.4, 0.1]], octave: 2, attack: 0.003, life: 2.2, trim: 1.3 },
+
+    // ---- church sounds with a chip texture ----
+    cathedral: { name: "Church Organ", partials: [["sine", 0.5, 0.6], ["sine", 1, 1], ["sine", 2, 0.8], ["sine", 3, 0.5], ["sine", 4, 0.4], ["sine", 5, 0.25], ["sine", 6, 0.2], ["sine", 8, 0.12]], attack: 0.04, sustain: 1, trim: 0.3 },
+    choir:     { name: "Choir", partials: [["sawtooth", 1, 0.5], ["sawtooth", 1.005, 0.45], ["sawtooth", 0.995, 0.45], ["sine", 2, 0.25]], attack: 0.3, sustain: 0.85, cutoff: 1500, trim: 0.5 },
+    strings:   { name: "Strings", partials: [["sawtooth", 1, 0.45], ["sawtooth", 1.006, 0.4], ["sawtooth", 0.994, 0.4]], attack: 0.35, sustain: 0.9, cutoff: 2600, trim: 0.45 },
+    bells:     { name: "Bells", partials: [["sine", 1, 1], ["sine", 2.4, 0.5], ["sine", 3.0, 0.3], ["sine", 5.95, 0.15]], attack: 0.002, life: 3.5, trim: 1.1 },
+    harp:      { name: "Harp", partials: [["triangle", 1, 1], ["sine", 2, 0.3], ["sine", 3, 0.1]], attack: 0.004, life: 2.5, trim: 1.5 },
+    chiplead:  { name: "Chip Lead", partials: [["square", 1, 0.5]], attack: 0.004, sustain: 0.85, trim: 0.55 },
+    chipbass:  { name: "Chip Bass", partials: [["triangle", 1, 1], ["square", 0.5, 0.25]], attack: 0.004, sustain: 0.9, trim: 1.0 },
+    drone:     { name: "Dark Drone", partials: [["sawtooth", 0.5, 0.5], ["sawtooth", 0.505, 0.5], ["sine", 0.25, 0.8]], attack: 0.9, sustain: 1, cutoff: 520, trim: 0.7 },
+
+    // ---- sound-effect sources ----
+    // A pure sine: with Slide and Fade it makes thuds, heartbeats and risers.
+    sine:      { name: "Pure Sine", partials: [["sine", 1, 1]], attack: 0.004, sustain: 1, trim: 1.1 },
+    // Filtered noise whose centre pitch follows the note, so a Slide makes a whoosh or a sigh.
+    noise:     { name: "Noise Sweep", noise: true, q: 3.5, partials: [["noise", 1, 1]], attack: 0.01, sustain: 1, trim: 2.2 },
+    // A struck metal plate: inharmonic partials that ring for seconds.
+    gong:      { name: "Gong", partials: [["sine", 1, 1], ["sine", 1.007, 0.6], ["sine", 1.47, 0.8], ["sine", 1.48, 0.45], ["sine", 2.09, 0.6], ["sine", 2.1, 0.35], ["sine", 2.56, 0.5], ["sine", 3.33, 0.35], ["sine", 4.2, 0.3]], attack: 0.003, life: 4.5, trim: 0.55 },
   };
   let instrument = "piano";
 
@@ -130,7 +148,20 @@ window.PianoKit = (function () {
 
   // One note into any context and any node (the Studio uses this for its piano roll and for
   // WAV export). Same instruments as playNote, but no pedal, wheel or vibrato.
-  function noteInto(ctx, dest, midi, start, duration, volume = 0.12, name = instrument) {
+  const noiseBuffers = new WeakMap();
+  function noiseFor(ctx) {
+    if (!noiseBuffers.has(ctx)) {
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      noiseBuffers.set(ctx, buffer);
+    }
+    return noiseBuffers.get(ctx);
+  }
+
+  // opts (all optional): glide = semitones to slide by the end of the note,
+  // fadeIn / fadeOut = share of the note (0 to 1) spent rising from / falling to silence.
+  function noteInto(ctx, dest, midi, start, duration, volume = 0.12, name = instrument, opts) {
     const inst = INSTRUMENTS[name] || INSTRUMENTS.piano;
     const peak = volume * registerGain(midi) * inst.trim;
     const freq = midiToFreq(midi) * (inst.octave || 1);
@@ -147,7 +178,26 @@ window.PianoKit = (function () {
     } else {
       gain.gain.exponentialRampToValueAtTime(0.0001, start + Math.min(duration + 0.25, inst.life));
     }
-    gain.connect(dest);
+    const glide = opts && Number(opts.glide) ? Number(opts.glide) : 0;
+    const fi = opts ? Math.max(0, Math.min(1, Number(opts.fadeIn) || 0)) : 0;
+    const fo = opts ? Math.max(0, Math.min(1 - fi, Number(opts.fadeOut) || 0)) : 0;
+    if (fi > 0 || fo > 0) {
+      const fade = ctx.createGain();
+      fade.gain.setValueAtTime(fi > 0 ? 0 : 1, start);
+      if (fi > 0) fade.gain.linearRampToValueAtTime(1, start + fi * duration);
+      if (fo > 0) {
+        fade.gain.setValueAtTime(1, end - fo * duration);
+        fade.gain.linearRampToValueAtTime(0, end);
+      }
+      gain.connect(fade);
+      fade.connect(dest);
+    } else {
+      gain.connect(dest);
+    }
+    const slide = (param, from) => {
+      param.setValueAtTime(from, start);
+      if (glide) param.exponentialRampToValueAtTime(from * Math.pow(2, glide / 12), end);
+    };
     let sink = gain;
     if (inst.cutoff) {
       const filter = ctx.createBiquadFilter();
@@ -160,10 +210,26 @@ window.PianoKit = (function () {
       let amount = level;
       if (index === 2) amount += 0.54 * low;
       if (index === 3) amount += 0.4 * low;
-      const osc = ctx.createOscillator();
       const part = ctx.createGain();
+      if (inst.noise) {
+        const src = ctx.createBufferSource();
+        src.buffer = noiseFor(ctx);
+        src.loop = true;
+        const band = ctx.createBiquadFilter();
+        band.type = "bandpass";
+        band.Q.value = inst.q || 3;
+        slide(band.frequency, Math.min(18000, freq));
+        part.gain.setValueAtTime(amount, start);
+        src.connect(band);
+        band.connect(part);
+        part.connect(sink);
+        src.start(start, Math.random());
+        src.stop(end + 0.35);
+        return;
+      }
+      const osc = ctx.createOscillator();
       osc.type = type;
-      osc.frequency.value = freq * multiple;
+      slide(osc.frequency, freq * multiple);
       part.gain.setValueAtTime(amount, start);
       if (decayK) part.gain.setTargetAtTime(amount * 0.04, start + inst.attack, pianoTau(midi) / decayK);
       osc.connect(part);
@@ -225,10 +291,23 @@ window.PianoKit = (function () {
       let amount = level;
       if (index === 2) amount += 0.54 * low; // low piano notes get extra upper harmonics
       if (index === 3) amount += 0.4 * low;
-      const osc = ctx.createOscillator();
       const part = ctx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq * multiple;
+      let osc;
+      let entry = part;
+      if (inst.noise) {
+        osc = ctx.createBufferSource();
+        osc.buffer = noiseFor(ctx);
+        osc.loop = true;
+        entry = ctx.createBiquadFilter();
+        entry.type = "bandpass";
+        entry.Q.value = inst.q || 3;
+        entry.frequency.value = Math.min(18000, freq);
+        entry.connect(part);
+      } else {
+        osc = ctx.createOscillator();
+        osc.type = type;
+        osc.frequency.value = freq * multiple;
+      }
       osc.detune.value = bendCents;
       vibrato.connect(osc.detune);
       liveOscs.add(osc);
@@ -238,7 +317,7 @@ window.PianoKit = (function () {
       };
       part.gain.setValueAtTime(amount, start);
       if (decayK) part.gain.setTargetAtTime(amount * 0.04, start + inst.attack, pianoTau(midi) / decayK);
-      osc.connect(part);
+      osc.connect(entry);
       part.connect(sink);
       osc.start(start);
       osc.stop(end + 0.05);

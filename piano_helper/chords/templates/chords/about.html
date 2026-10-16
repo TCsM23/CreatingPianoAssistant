@@ -36,7 +36,7 @@
         <li><a href="{% url 'chords:practice' %}">Practice</a> trains your ear and your timing.</li>
         <li><a href="{% url 'chords:notation' %}">Notation</a> explains note values, dynamics, tempo and key signatures.</li>
         <li><a href="{% url 'chords:songs' %}">Songs</a> plays pieces on the keys, loads your MIDI files and records you.</li>
-        <li><a href="{% url 'chords:studio' %}">Studio</a> is a small workstation: drum sequencer, piano roll, mixer and WAV export.</li>
+        <li><a href="{% url 'chords:studio' %}">Studio</a> is a small workstation: drum sequencer, piano roll, mixer, sound effects and WAV export.</li>
       </ul>
     </section>
 
@@ -48,6 +48,37 @@
         for loops of 1 to 16 bars. The <strong>Mixer</strong> gives every channel a volume fader, pan, mute, solo and a level meter.
         Press <strong>Export WAV</strong> to download your loop as an audio file. Your work is saved in this browser.
       </p>
+      <p class="about-text">
+        Click a note on the roll to edit it: its sound, volume, a <strong>Slide</strong> that bends the pitch across the note,
+        and fade in and out. Besides the piano sounds there are a Church Organ, Choir, Strings, Bells, Harp, chip sounds and a
+        Dark Drone, plus a Pure Sine, a Noise Sweep and a Gong for building sound effects. Tick <strong>Sound-effect mode</strong>
+        and the drums play once, and Export WAV saves a single take with the silence trimmed and the loudness matched.
+        Pick a key and scale in the roll's toolbar to shade it on the roll. The tempo goes up to 300 BPM.
+      </p>
+      <h3 class="about-sub">Studio keyboard shortcuts</h3>
+      <p class="about-text">Press <kbd>?</kbd> on the Studio page to show or hide this list there.</p>
+      <div class="about-table-wrap">
+        <table class="about-table">
+          <thead>
+            <tr><th scope="col">Key</th><th scope="col">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><kbd>Space</kbd></th><td>Play / pause. Play then reads “Resume” and continues from the same step.</td></tr>
+            <tr><th scope="row"><kbd>Esc</kbd></th><td>Stop and go back to the start</td></tr>
+            <tr><th scope="row"><kbd>Enter</kbd></th><td>Play again from the start</td></tr>
+            <tr><th scope="row"><kbd>R</kbd></th><td>Record on / off</td></tr>
+            <tr><th scope="row"><kbd>[</kbd> <kbd>]</kbd></th><td>Tempo −1 / +1 (hold <kbd>Shift</kbd> for 10)</td></tr>
+            <tr><th scope="row"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></th><td>Sequencer / Piano roll / Mixer</td></tr>
+            <tr><th scope="row"><kbd>E</kbd></th><td>Export WAV</td></tr>
+            <tr><th scope="row"><kbd>PgUp</kbd> <kbd>PgDn</kbd></th><td>Piano roll up / down an octave</td></tr>
+            <tr><th scope="row"><kbd>↑</kbd> <kbd>↓</kbd></th><td>Move the selected note a semitone (<kbd>Shift</kbd>: octave)</td></tr>
+            <tr><th scope="row"><kbd>←</kbd> <kbd>→</kbd></th><td>Move the selected note by the snap (<kbd>Shift</kbd>: one step)</td></tr>
+            <tr><th scope="row"><kbd>D</kbd></th><td>Duplicate the selected note after itself</td></tr>
+            <tr><th scope="row"><kbd>H</kbd></th><td>Hear the selected note</td></tr>
+            <tr><th scope="row"><kbd>Del</kbd></th><td>Delete the selected note</td></tr>
+          </tbody>
+        </table>
+      </div>
       <h3 class="about-sub">Using a MIDI controller (made for the M-Vave SMK-37 Pro)</h3>
       <dl class="about-keys">
         <div><dt>Connect MIDI</dt><dd>Use Chrome, Edge or Opera and allow MIDI access when asked</dd></div>
@@ -67,14 +98,14 @@
 
       <h3 class="about-sub">Keyboard and controls</h3>
       <dl class="about-keys">
-        <div><dt><kbd>Space</kbd></dt><dd>Full sustain pedal while held</dd></div>
+        <div><dt><kbd>Space</kbd></dt><dd>Full sustain pedal while held. On the Studio page it plays and pauses instead</dd></div>
         <div><dt><kbd>Shift</kbd></dt><dd>Half pedal while held</dd></div>
         <div><dt>Click a key</dt><dd>Play it, click a lit key again to unlight it</dd></div>
         <div><dt>Drag across keys</dt><dd>Glissando with the mouse or your finger</dd></div>
         <div><dt>Octave arrows</dt><dd>Slide the keyboard to another octave. Each C is labelled (C3, C4, C5…)</dd></div>
         <div><dt>Typing keys</dt><dd>Play the keyboard from your computer keys. Press them to hear notes, switch them off with the Typing keys button</dd></div>
         <div><dt>Chord wheel</dt><dd>Click a chord to see its neighbours. Switch between chord relationships and scale degrees</dd></div>
-        <div><dt>Sound</dt><dd>Switch between piano, e-piano, organ, synth, harpsichord and music box</dd></div>
+        <div><dt>Sound</dt><dd>Switch between piano, e-piano, organ, synth, harpsichord, music box, church organ, choir, strings, bells, harp, chip sounds and more</dd></div>
         <div><dt>Clear keys</dt><dd>Remove every highlight at once</dd></div>
         <div><dt>Sun / moon icon</dt><dd>Switch between dark and light mode</dd></div>
       </dl>

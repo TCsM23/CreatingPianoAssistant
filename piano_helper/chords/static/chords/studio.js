@@ -43,7 +43,12 @@
            "kick", "snare", "clap", "hat", "open", "tom", "rim", "cow"],
     snap: 2,
     rollBase: 48,
+    sfx: false,     // sound-effect mode: drums play once, and the export is one trimmed, level-matched take
+    scale: { root: 2, name: "Off", pcs: [], show: false }, // shaded on the roll when a scale is chosen
   };
+  // each instrument gets its own colour on the roll, so layers are easy to tell apart
+  const HUES = { piano: 355, epiano: 20, organ: 38, synth: 280, harpsichord: 28, musicbox: 190, cathedral: 46,
+    choir: 205, strings: 255, bells: 170, harp: 140, chiplead: 100, chipbass: 75, drone: 310, sine: 225, noise: 330, gong: 60 };
   const stepButtons = {};
   TRACK_IDS.forEach((id) => {
     S.pattern[id] = new Array(STEPS).fill(false);
@@ -202,17 +207,21 @@
     VOICES[id](e.ctx, g, time);
   }
 
-  function playKey(e, midi, time, dur, vel) {
-    K.noteInto(e.ctx, e.ch.keys.input, midi, time, dur, 0.04 + 0.14 * vel, K.getInstrument());
+  function noteOpts(n) {
+    return { glide: n.glide || 0, fadeIn: (n.fadeIn || 0) / 100, fadeOut: (n.fadeOut || 0) / 100 };
+  }
+
+  function playKey(e, midi, time, dur, vel, inst, opts) {
+    K.noteInto(e.ctx, e.ch.keys.input, midi, time, dur, 0.04 + 0.14 * vel, inst || K.getInstrument(), opts);
   }
 
   function scheduleStepInto(e, step, time, stepLen) {
     const ds = step % STEPS;
     TRACK_IDS.forEach((id) => {
-      if (S.pattern[id][ds]) hitDrum(e, id, time, 1);
+      if (S.pattern[id][ds] && !(S.sfx && step >= STEPS)) hitDrum(e, id, time, 1);
     });
     S.notes.forEach((n) => {
-      if (n.start === step) playKey(e, n.midi, time, Math.max(0.08, n.len * stepLen), n.vel);
+      if (n.start === step) playKey(e, n.midi, time, Math.max(0.08, n.len * stepLen), n.vel, n.inst, noteOpts(n));
     });
   }
 
@@ -227,6 +236,8 @@
   let lit = -1;
   let curStep = 0;    // the step that is sounding now
   let curTime = 0;    // when it started (audio clock)
+  let paused = false;     // stopped in the middle, ready to carry on
+  let resumeStep = 0;     // where Resume picks up
 
   function scheduler() {
     const e = engine();
@@ -248,29 +259,50 @@
 
   // where we are right now, in steps (with a fraction), for recording and the playhead
   function position() {
-    if (!playing) return 0;
+    if (!playing) return paused ? resumeStep : 0;
     const e = engine();
     const frac = Math.max(0, Math.min(1, (e.ctx.currentTime - curTime) / stepLength()));
     return curStep + frac;
   }
 
-  function start() {
+  function start(from) {
     const e = engine();
+    from = from > 0 ? from % totalSteps() : 0;
     playing = true;
-    nextStep = 0;
-    curStep = 0;
+    paused = false;
+    nextStep = from;
+    curStep = from;
     nextTime = e.ctx.currentTime + 0.06;
     curTime = nextTime;
     queue = [];
     scheduler();
     timer = setInterval(scheduler, LOOKAHEAD_MS);
-    playButton.textContent = "■ Stop";
+    playButton.textContent = "❚❚ Pause";
     playButton.setAttribute("aria-pressed", "true");
     dirty = true;
   }
 
+  // Pause keeps the place; Play then reads "Resume" and carries on from the same step.
+  function pause() {
+    if (!playing) return;
+    playing = false;
+    paused = true;
+    resumeStep = curStep;
+    clearInterval(timer);
+    queue = [];
+    showStep(curStep);
+    playButton.textContent = "▶ Resume";
+    playButton.setAttribute("aria-pressed", "false");
+    setRecording(false);
+    dirty = true;
+  }
+
+  const playPause = () => (playing ? pause() : start(paused ? resumeStep : 0));
+
   function stop() {
     playing = false;
+    paused = false;
+    resumeStep = 0;
     clearInterval(timer);
     queue = [];
     showStep(-1);
@@ -303,7 +335,7 @@
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         pattern: S.pattern, notes: S.notes, mixer: S.mixer, master: S.master, pads: S.pads,
-        bars: S.bars, snap: S.snap, rollBase: S.rollBase, bpm: Number(bpmInput.value),
+        bars: S.bars, snap: S.snap, rollBase: S.rollBase, bpm: Number(bpmInput.value), scale: S.scale, sfx: S.sfx,
       }));
     } catch (error) { /* private window: just don't remember */ }
   }
@@ -333,7 +365,10 @@
       if (Array.isArray(saved.notes)) {
         S.notes = saved.notes
           .filter((n) => n && n.midi >= 21 && n.midi <= 108 && n.start >= 0 && n.len > 0)
-          .map((n) => ({ midi: n.midi | 0, start: n.start | 0, len: Math.max(1, n.len | 0), vel: Math.max(0.05, Math.min(1, Number(n.vel) || 0.8)) }));
+          .map((n) => ({ midi: n.midi | 0, start: n.start | 0, len: Math.max(1, n.len | 0), vel: Math.max(0.05, Math.min(1, Number(n.vel) || 0.8)), inst: HUES[n.inst] !== undefined ? n.inst : undefined,
+          glide: Math.max(-48, Math.min(48, Math.round(Number(n.glide)) || 0)),
+          fadeIn: Math.max(0, Math.min(100, Math.round(Number(n.fadeIn)) || 0)),
+          fadeOut: Math.max(0, Math.min(100, Math.round(Number(n.fadeOut)) || 0)) }));
       }
       if (typeof saved.master === "number") S.master = Math.max(0, Math.min(1, saved.master));
       if (Array.isArray(saved.pads) && saved.pads.length === 16) {
@@ -341,9 +376,14 @@
       }
       if ([1, 2, 4, 8, 16].includes(saved.bars)) S.bars = saved.bars;
       if ([1, 2, 4].includes(saved.snap)) S.snap = saved.snap;
+      const sc = saved.scale;
+      if (sc && Array.isArray(sc.pcs) && sc.pcs.length >= 5 && sc.pcs.every((x) => x >= 0 && x < 12) && sc.show !== false) {
+        S.scale = { root: sc.root | 0, name: String(sc.name || "Scale").slice(0, 30), pcs: sc.pcs.map((x) => x | 0), show: sc.show !== false };
+      }
       if (saved.rollBase >= 24 && saved.rollBase <= 84) S.rollBase = saved.rollBase;
       const bpm = Number(saved.bpm);
-      if (bpm >= 60 && bpm <= 180) bpmInput.value = bpm;
+      if (bpm >= 60 && bpm <= 300) bpmInput.value = bpm;
+      S.sfx = saved.sfx === true;
       const limit = totalSteps();
       S.notes = S.notes.filter((n) => n.start < limit).map((n) => ({ ...n, len: Math.min(n.len, limit - n.start) }));
     } catch (error) { /* bad data: start empty */ }
@@ -351,7 +391,7 @@
 
   // ---------- setters (one place changes things, so the screen never disagrees with the sound) ----------
   function setBpm(value) {
-    const bpm = Math.round(Math.max(60, Math.min(180, value)));
+    const bpm = Math.round(Math.max(60, Math.min(300, value)));
     bpmInput.value = bpm;
     bpmValue.textContent = bpm;
     save();
@@ -362,6 +402,7 @@
     barsSelect.value = String(bars);
     const limit = totalSteps();
     S.notes = S.notes.filter((n) => n.start < limit).map((n) => ({ ...n, len: Math.min(n.len, limit - n.start) }));
+    if (sel) select(null);
     if (playing) nextStep = nextStep % limit;
     sizeRoll();
     dirty = true;
@@ -458,6 +499,7 @@
   let dirty = true;
   let lastLen = 2;
   let drag = null;
+  let sel = null;   // the note the editor is showing
 
   function cssVar(name, fallback) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -494,6 +536,16 @@
         : (light ? "rgba(80,10,12,0.03)" : "rgba(255,238,238,0.04)");
       rollCtx.fillRect(LABEL_W, r * ROW_H, w - LABEL_W, ROW_H);
     }
+    if (S.scale.show) {
+      for (let r = 0; r < ROWS; r++) {
+        const pc = midiOf(r) % 12;
+        if (!S.scale.pcs.includes(pc)) continue;
+        const root = pc === S.scale.root;
+        rollCtx.fillStyle = root ? (light ? "rgba(190,120,0,0.30)" : "rgba(255,200,80,0.20)")
+          : (light ? "rgba(190,120,0,0.12)" : "rgba(255,200,80,0.07)");
+        rollCtx.fillRect(LABEL_W, r * ROW_H, w - LABEL_W, ROW_H);
+      }
+    }
     drawKeys(h);
     for (let s = 0; s <= totalSteps(); s++) {
       const x = LABEL_W + s * stepW + 0.5;
@@ -510,12 +562,40 @@
       if (r < 0 || r >= ROWS) return;
       const x = LABEL_W + n.start * stepW;
       const nw = Math.max(4, n.len * stepW - 1);
-      rollCtx.fillStyle = "rgba(255," + Math.round(40 + 70 * (1 - n.vel)) + ",60,0.95)";
+      rollCtx.fillStyle = "hsla(" + (HUES[n.inst || K.getInstrument()] || 355) + ",85%," + Math.round(48 + 14 * (1 - n.vel)) + "%,0.95)";
       rollCtx.fillRect(x, r * ROW_H + 1, nw, ROW_H - 2);
-      rollCtx.strokeStyle = "rgba(0,0,0,0.5)";
-      rollCtx.strokeRect(x + 0.5, r * ROW_H + 1.5, nw - 1, ROW_H - 3);
+      const top = r * ROW_H + 1;
+      const fi = (n.fadeIn || 0) / 100;
+      const fo = (n.fadeOut || 0) / 100;
+      if (fi > 0) {
+        const g = rollCtx.createLinearGradient(x, 0, x + nw * fi, 0);
+        g.addColorStop(0, "rgba(0,0,0,0.7)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        rollCtx.fillStyle = g;
+        rollCtx.fillRect(x, top, nw * fi, ROW_H - 2);
+      }
+      if (fo > 0) {
+        const g = rollCtx.createLinearGradient(x + nw, 0, x + nw - nw * fo, 0);
+        g.addColorStop(0, "rgba(0,0,0,0.7)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        rollCtx.fillStyle = g;
+        rollCtx.fillRect(x + nw - nw * fo, top, nw * fo, ROW_H - 2);
+      }
+      rollCtx.strokeStyle = n === sel ? "#ffffff" : "rgba(0,0,0,0.5)";
+      rollCtx.lineWidth = n === sel ? 2 : 1;
+      rollCtx.strokeRect(x + 0.5, top + 0.5, nw - 1, ROW_H - 3);
+      rollCtx.lineWidth = 1;
+      if (n.glide) {
+        rollCtx.strokeStyle = "rgba(255,255,255,0.95)";
+        rollCtx.lineWidth = 2;
+        rollCtx.beginPath();
+        rollCtx.moveTo(x + 2, r * ROW_H + ROW_H / 2);
+        rollCtx.lineTo(x + nw - 2, r * ROW_H + ROW_H / 2 - n.glide * ROW_H);
+        rollCtx.stroke();
+        rollCtx.lineWidth = 1;
+      }
     });
-    if (playing) {
+    if (playing || paused) {
       const x = LABEL_W + position() * stepW;
       rollCtx.fillStyle = ink;
       rollCtx.fillRect(x, 0, 2, h);
@@ -590,6 +670,7 @@
     const n = noteAt(p.midi, Math.floor(p.step));
     if (n) {
       S.notes.splice(S.notes.indexOf(n), 1);
+      if (n === sel) select(null);
       dirty = true;
       save();
     }
@@ -604,12 +685,14 @@
     const snapped = Math.floor(cell / S.snap) * S.snap;
     const hit = noteAt(p.midi, cell);
     roll.setPointerCapture(event.pointerId);
+    select(hit || null);
     if (hit) {
       const edge = LABEL_W + (hit.start + hit.len) * stepW - p.x < 8;
       drag = { note: hit, mode: edge ? "resize" : "move", grab: p.step - hit.start };
     } else {
-      const note = { midi: p.midi, start: snapped, len: Math.min(Math.max(lastLen, S.snap), total - snapped), vel: 0.8 };
+      const note = { midi: p.midi, start: snapped, len: Math.min(Math.max(lastLen, S.snap), total - snapped), vel: 0.8, inst: K.getInstrument() };
       S.notes.push(note);
+      select(note);
       preview(p.midi);
       drag = { note, mode: "new", grab: 0 };
     }
@@ -644,7 +727,100 @@
   $("studio-snap").addEventListener("change", (event) => { S.snap = Number(event.target.value); save(); });
   $("studio-roll-up").addEventListener("click", () => rollShift(12));
   $("studio-roll-down").addEventListener("click", () => rollShift(-12));
-  $("studio-roll-clear").addEventListener("click", () => { S.notes = []; dirty = true; save(); });
+  $("studio-roll-clear").addEventListener("click", () => { S.notes = []; select(null); dirty = true; save(); });
+
+  // ---------- shade a scale on the roll ----------
+  const SCALES = {
+    "Natural minor": [0, 2, 3, 5, 7, 8, 10], "Harmonic minor": [0, 2, 3, 5, 7, 8, 11], Dorian: [0, 2, 3, 5, 7, 9, 10],
+    "Phrygian dominant": [0, 1, 4, 5, 7, 8, 10], Lydian: [0, 2, 4, 6, 7, 9, 11], Major: [0, 2, 4, 5, 7, 9, 11],
+  };
+  const scaleKey = $("studio-scale-key");
+  const scaleMode = $("studio-scale-mode");
+  ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"].forEach((n, i) => scaleKey.add(new Option(n, String(i))));
+  scaleMode.add(new Option("Off", "Off"));
+  Object.keys(SCALES).forEach((n) => scaleMode.add(new Option(n, n)));
+  function applyScale() {
+    const root = Number(scaleKey.value);
+    const steps = SCALES[scaleMode.value];
+    S.scale = steps ? { root, name: scaleMode.value, pcs: steps.map((s) => (root + s) % 12), show: true }
+      : { root, name: "Off", pcs: [], show: false };
+    dirty = true;
+    save();
+  }
+  scaleKey.addEventListener("change", applyScale);
+  scaleMode.addEventListener("change", applyScale);
+
+  // ---------- the note editor: sound, volume, slide and fades for one note (or several) ----------
+  const ed = {
+    box: $("studio-note-editor"), title: $("studio-note-title"), inst: $("studio-note-inst"), scope: $("studio-note-scope"),
+    vel: $("studio-note-vel"), glide: $("studio-note-glide"), fadeIn: $("studio-note-fadein"), fadeOut: $("studio-note-fadeout"),
+  };
+  ed.inst.innerHTML = $("main-keyboard-instrument").innerHTML;
+  ed.box.querySelectorAll("input, select, button").forEach((el) => { el.disabled = true; });
+
+  function select(note) {
+    sel = note;
+    ed.box.classList.toggle("studio-note-editor-empty", !note);
+    ed.box.querySelectorAll("input, select, button").forEach((el) => { el.disabled = !note; });
+    if (!note) { ed.title.textContent = "No note selected"; dirty = true; return; }
+    ed.title.textContent = K.noteName(note.midi) + " · " + note.len + " step" + (note.len > 1 ? "s" : "");
+    ed.inst.value = note.inst || K.getInstrument();
+    ed.vel.value = Math.round(note.vel * 100);
+    ed.glide.value = note.glide || 0;
+    ed.fadeIn.value = note.fadeIn || 0;
+    ed.fadeOut.value = note.fadeOut || 0;
+    showEditorValues();
+    dirty = true;
+  }
+
+  function showEditorValues() {
+    $("studio-note-vel-value").textContent = ed.vel.value + "%";
+    const g = Number(ed.glide.value);
+    $("studio-note-glide-value").textContent = (g > 0 ? "+" : "") + g + " st";
+    $("studio-note-fadein-value").textContent = ed.fadeIn.value + "%";
+    $("studio-note-fadeout-value").textContent = ed.fadeOut.value + "%";
+  }
+
+  function scopeNotes() {
+    if (!sel) return [];
+    if (ed.scope.value === "sound") return S.notes.filter((n) => (n.inst || K.getInstrument()) === (sel.inst || K.getInstrument()));
+    if (ed.scope.value === "chord") return S.notes.filter((n) => n.start === sel.start);
+    return [sel];
+  }
+
+  function edit(change) {
+    if (!sel) return;
+    scopeNotes().forEach(change);
+    showEditorValues();
+    dirty = true;
+    save();
+  }
+
+  ed.inst.addEventListener("change", () => edit((n) => { n.inst = ed.inst.value; }));
+  ed.vel.addEventListener("input", () => edit((n) => { n.vel = Math.max(0.05, Number(ed.vel.value) / 100); }));
+  ed.glide.addEventListener("input", () => edit((n) => { n.glide = Number(ed.glide.value); }));
+  ed.fadeIn.addEventListener("input", () => edit((n) => { n.fadeIn = Number(ed.fadeIn.value); }));
+  ed.fadeOut.addEventListener("input", () => edit((n) => { n.fadeOut = Number(ed.fadeOut.value); }));
+  $("studio-note-hear").addEventListener("click", () => {
+    if (!sel) return;
+    const e = engine();
+    playKey(e, sel.midi, e.ctx.currentTime + 0.02, Math.max(0.08, sel.len * stepLength()), sel.vel, sel.inst, noteOpts(sel));
+  });
+  $("studio-note-delete").addEventListener("click", () => {
+    if (!sel) return;
+    S.notes.splice(S.notes.indexOf(sel), 1);
+    select(null);
+    save();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (tab !== "roll" || !sel) return;
+    if (event.key !== "Delete" && event.key !== "Backspace") return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName)) return;
+    event.preventDefault();
+    S.notes.splice(S.notes.indexOf(sel), 1);
+    select(null);
+    save();
+  });
 
   function rollShift(delta) {
     S.rollBase = Math.max(24, Math.min(84, S.rollBase + delta));
@@ -665,7 +841,7 @@
       const h = held.get(midi);
       held.delete(midi);
       const len = Math.max(1, Math.round((e.ctx.currentTime - h.time) / stepLength()));
-      S.notes.push({ midi, start: h.step, len: Math.min(len, totalSteps() - h.step), vel: 0.8 });
+      S.notes.push({ midi, start: h.step, len: Math.min(len, totalSteps() - h.step), vel: 0.8, inst: K.getInstrument() });
       dirty = true;
       save();
     }
@@ -797,37 +973,83 @@
     return new Blob([view], { type: "audio/wav" });
   }
 
-  async function exportWav() {
+  // Renders anything offline through the same compressor the live output has.
+  // build(ctx, out) schedules the sounds; the result is a stereo AudioBuffer.
+  async function renderBuffer(seconds, build) {
     const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!Offline) { exportNote.textContent = "This browser cannot render audio offline."; return; }
+    if (!Offline) throw new Error("This browser cannot render audio offline.");
+    const rate = 44100;
+    const ctx = new Offline(2, Math.ceil(seconds * rate), rate);
+    const out = ctx.createDynamicsCompressor();
+    out.threshold.value = -12;
+    out.knee.value = 24;
+    out.ratio.value = 3;
+    out.attack.value = 0.01;
+    out.release.value = 0.25;
+    out.connect(ctx.destination);
+    build(ctx, out);
+    return ctx.startRendering();
+  }
+
+  function download(blob, name) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  }
+
+  // Sound-effect mode: cut the silence off both ends, set the loudness, and fade the last few milliseconds.
+  function finishSfx(buf) {
+    const rate = buf.sampleRate;
+    const chans = [];
+    for (let c = 0; c < buf.numberOfChannels; c++) chans.push(buf.getChannelData(c));
+    let first = buf.length;
+    let last = 0;
+    for (let i = 0; i < buf.length; i++) {
+      for (let c = 0; c < chans.length; c++) {
+        if (Math.abs(chans[c][i]) > 0.002) { if (i < first) first = i; last = i; }
+      }
+    }
+    if (last <= first) return buf;
+    const from = Math.max(0, first - Math.round(rate * 0.01));
+    const to = Math.min(buf.length, last + Math.round(rate * 0.05));
+    let peak = 0;
+    for (let c = 0; c < chans.length; c++) for (let i = from; i < to; i++) peak = Math.max(peak, Math.abs(chans[c][i]));
+    const k = peak > 0 ? 0.89 / peak : 1;
+    const fade = Math.round(rate * 0.025);
+    const out = chans.map((d) => {
+      const o = new Float32Array(to - from);
+      for (let i = 0; i < o.length; i++) {
+        const tail = o.length - i;
+        o[i] = d[from + i] * k * (tail < fade ? tail / fade : 1);
+      }
+      return o;
+    });
+    return { numberOfChannels: out.length, length: to - from, sampleRate: rate, getChannelData: (c) => out[c] };
+  }
+
+  async function exportWav() {
     exportButton.disabled = true;
-    exportNote.textContent = "Rendering your loop…";
+    exportNote.textContent = S.sfx ? "Rendering your sound effect…" : "Rendering your loop…";
     try {
+      const sfx = S.sfx;
       const total = totalSteps();
-      const repeats = Math.max(1, Math.round(4 / S.bars)); // the loop, played to fill four bars
+      const repeats = sfx ? 1 : Math.max(1, Math.round(4 / S.bars)); // a loop is played to fill four bars
       const sl = stepLength();
-      const seconds = total * repeats * sl + 1.5;       // a tail so the last notes can ring out
-      const rate = 44100;
-      const ctx = new Offline(2, Math.ceil(seconds * rate), rate);
-      const out = ctx.createDynamicsCompressor();      // the same glue the live output has
-      out.threshold.value = -12;
-      out.knee.value = 24;
-      out.ratio.value = 3;
-      out.attack.value = 0.01;
-      out.release.value = 0.25;
-      out.connect(ctx.destination);
-      const e = buildEngine(ctx, out, false);
-      for (let s = 0; s < total * repeats; s++) scheduleStepInto(e, s % total, 0.05 + s * sl, sl);
-      const rendered = await ctx.startRendering();
+      const tail = sfx ? 3 : 1.5;                         // a tail so the last notes can ring out
+      const seconds = total * repeats * sl + tail;
+      let rendered = await renderBuffer(seconds, (ctx, out) => {
+        const e = buildEngine(ctx, out, false);
+        for (let s = 0; s < total * repeats; s++) scheduleStepInto(e, s % total, 0.05 + s * sl, sl);
+      });
+      if (sfx) rendered = finishSfx(rendered);
       const blob = encodeWav(rendered);
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "tcsmusic-loop.wav";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(link.href), 2000);
-      exportNote.textContent = "Saved tcsmusic-loop.wav (" + (blob.size / 1048576).toFixed(1) + " MB, " + (seconds - 1.5).toFixed(1) + " seconds + tail).";
+      const file = sfx ? "tcsmusic-sfx.wav" : "tcsmusic-loop.wav";
+      download(blob, file);
+      exportNote.textContent = "Saved " + file + " (" + (blob.size / 1048576).toFixed(2) + " MB, " + (rendered.length / rendered.sampleRate).toFixed(2) + " seconds" + (sfx ? ", trimmed and level-matched" : "") + ").";
     } catch (error) {
       exportNote.textContent = "Could not export: " + error.message;
     }
@@ -838,11 +1060,11 @@
   const targets = {};
   function target(id, label, group, kind, fn) { targets[id] = { id, label, group, kind, fn }; }
 
-  const toggleRecord = () => { setRecording(!recording); if (recording && !playing) start(); };
+  const toggleRecord = () => { setRecording(!recording); if (recording && !playing) start(paused ? resumeStep : 0); };
   target("play", "Play / Stop", "Transport", "trig", () => (playing ? stop() : start()));
   target("stop", "Stop", "Transport", "trig", () => stop());
   target("record", "Record", "Transport", "trig", toggleRecord);
-  target("tempo", "Tempo", "Transport", "cont", (v) => setBpm(60 + v * 120));
+  target("tempo", "Tempo", "Transport", "cont", (v) => setBpm(60 + v * 240));
   target("loop", "Loop length (1/2/4 bars)", "Transport", "trig", () => setBars(S.bars === 1 ? 2 : S.bars === 2 ? 4 : S.bars === 4 ? 8 : S.bars === 8 ? 16 : 1));
   target("clear", "Clear all", "Transport", "trig", () => clearAll());
   target("octave-up", "Keyboard octave up", "Keys", "trig", () => board.shiftOctave(1));
@@ -1063,6 +1285,7 @@
   function clearAll() {
     TRACK_IDS.forEach((id) => S.pattern[id].fill(false));
     S.notes = [];
+    select(null);
     paint();
     dirty = true;
     save();
@@ -1087,13 +1310,15 @@
     if (muteButton) toggleMute(muteButton.dataset.track);
   });
 
-  playButton.addEventListener("click", () => { if (!learning) (playing ? stop() : start()); });
+  playButton.addEventListener("click", () => { if (!learning) playPause(); });
   stopButton.addEventListener("click", () => { if (!learning) stop(); });
   recordButton.addEventListener("click", () => { if (!learning) toggleRecord(); });
   bpmInput.addEventListener("input", () => { bpmValue.textContent = bpmInput.value; save(); });
   barsSelect.addEventListener("change", () => setBars(Number(barsSelect.value)));
   clearButton.addEventListener("click", clearAll);
   exportButton.addEventListener("click", exportWav);
+  const sfxBox = $("studio-sfx-mode");
+  sfxBox.addEventListener("change", () => { S.sfx = sfxBox.checked; save(); });
 
   presetSelect.addEventListener("change", () => {
     const preset = PRESETS[presetSelect.value];
@@ -1108,7 +1333,7 @@
   });
 
   // a hidden tab slows timers down, which would make the beat stumble
-  document.addEventListener("visibilitychange", () => { if (document.hidden && playing) stop(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && playing) pause(); });
 
   // ---------- one animation loop for everything that moves ----------
   function frame() {
@@ -1126,10 +1351,71 @@
     frameId = requestAnimationFrame(frame);
   }
 
+  // ---------- keyboard shortcuts ----------
+  // Space is the play key here, as in most music software. (The sustain pedal still works from the
+  // on-screen buttons, Shift and a MIDI pedal.)
+  function nudge(semitones, steps) {
+    if (!sel) return;
+    const next = Math.max(21, Math.min(108, sel.midi + semitones));
+    if (next !== sel.midi) { sel.midi = next; preview(next); }
+    sel.start = Math.max(0, Math.min(totalSteps() - sel.len, sel.start + steps));
+    select(sel);
+    save();
+  }
+
+  function duplicateNote() {
+    if (!sel || sel.start + sel.len * 2 > totalSteps()) return;
+    const copy = { ...sel, start: sel.start + sel.len };
+    S.notes.push(copy);
+    select(copy);
+    save();
+  }
+
+  const typing = (el) => /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable;
+  const SHORTCUT_KEYS = new Set([" ", "Enter", "Escape", "r", "e", "1", "2", "3", "[", "]", "{", "}", "?", "/", "d", "h",
+    "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"]);
+
+  window.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.repeat && event.key !== "ArrowUp" && event.key !== "ArrowDown" && event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    if (typing(event.target) || learning) return;
+    const k = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+    if (!SHORTCUT_KEYS.has(k)) return;
+    const inRoll = tab === "roll";
+    let done = true;
+    if (k === " ") playPause();
+    else if (k === "Enter") { stop(); start(0); }
+    else if (k === "Escape") stop();
+    else if (k === "r") toggleRecord();
+    else if (k === "e") exportButton.click();
+    else if (k === "1") showTab("seq");
+    else if (k === "2") showTab("roll");
+    else if (k === "3") showTab("mix");
+    else if (k === "[" || k === "]" || k === "{" || k === "}") setBpm(Number(bpmInput.value) + ((k === "]" || k === "}") ? 1 : -1) * (event.shiftKey || k === "{" || k === "}" ? 10 : 1));
+    else if (k === "?" || k === "/") { const d = $("studio-shortcuts"); d.open = !d.open; }
+    else if (inRoll && k === "d") { if (sel) duplicateNote(); else done = false; }
+    else if (inRoll && k === "h") { if (sel) $("studio-note-hear").click(); else done = false; }
+    else if (inRoll && k === "PageUp") rollShift(12);
+    else if (inRoll && k === "PageDown") rollShift(-12);
+    else if (inRoll && sel && k === "ArrowUp") nudge(event.shiftKey ? 12 : 1, 0);
+    else if (inRoll && sel && k === "ArrowDown") nudge(event.shiftKey ? -12 : -1, 0);
+    else if (inRoll && sel && k === "ArrowLeft") nudge(0, event.shiftKey ? -1 : -S.snap);
+    else if (inRoll && sel && k === "ArrowRight") nudge(0, event.shiftKey ? 1 : S.snap);
+    else done = false;
+    if (done) { event.preventDefault(); event.stopPropagation(); }
+  }, true);
+
+  // a button that has focus would also "click" on Space or Enter: swallow that
+  window.addEventListener("keyup", (event) => {
+    if (event.key === " " && !typing(event.target) && !learning) { event.preventDefault(); event.stopPropagation(); }
+  }, true);
+
   load();
   padEls.forEach((p, i) => { p.select.value = S.pads[i]; });
   bpmValue.textContent = bpmInput.value;
   barsSelect.value = String(S.bars);
+  sfxBox.checked = S.sfx;
+  scaleKey.value = String(S.scale.root);
+  scaleMode.value = S.scale.show ? S.scale.name : "Off";
   $("studio-snap").value = String(S.snap);
   paint();
   CHANNELS.forEach(syncMixerUi);
@@ -1138,5 +1424,11 @@
   frameId = requestAnimationFrame(frame);
 
   // tests drive the page through this
-  window.StudioDebug = { S, targets, drive, getMap: () => map, position, get playing() { return playing; } };
+  window.StudioApi = {
+    S, K, HUES, engine, renderBuffer, encodeWav, download, noiseHit, tone, VOICES, hitDrum, playKey,
+    setBpm, setBars, paint, save, sizeRoll, showTab, TRACK_IDS, select, finishSfx, noteOpts,
+    redraw: () => { dirty = true; },
+    stepLength, totalSteps,
+  };
+  window.StudioDebug = { S, targets, drive, getMap: () => map, position, get playing() { return playing; }, get paused() { return paused; } };
 })();
